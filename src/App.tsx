@@ -183,7 +183,7 @@ function App() {
                         {/* Content Area */}
                         <div className="flex-1 min-h-0">
                             {activeTab === 'dashboard' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full grid-rows-[auto_minmax(0,1fr)]">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full max-h-full grid-rows-[auto_1fr] overflow-hidden">
                                     <StatusCard
                                         title={t('status')}
                                         value={t(serverStatus) || serverStatus.toUpperCase()}

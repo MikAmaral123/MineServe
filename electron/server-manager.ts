@@ -51,6 +51,38 @@ export class ServerManager {
         return this.serverDir;
     }
 
+    getServerDetails() {
+        if (!this.serverDir) return null;
+
+        let type = 'unknown';
+        let version = null;
+
+        // 1. Try mineserve.json
+        try {
+            const metaPath = path.join(this.serverDir, 'mineserve.json');
+            if (fs.existsSync(metaPath)) {
+                const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+                if (meta.type) type = meta.type;
+                if (meta.version) version = meta.version;
+                return { type, version };
+            }
+        } catch (e) { }
+
+        // 2. Sniff File System
+        if (fs.existsSync(path.join(this.serverDir, 'fabric-server-launch.jar'))) {
+            type = 'fabric';
+        } else if (fs.existsSync(path.join(this.serverDir, 'papermc.jar')) || fs.existsSync(path.join(this.serverDir, 'paper.yml'))) {
+            type = 'paper'; // Modrinth uses "paper" or "bukkit"
+        } else if (fs.existsSync(path.join(this.serverDir, 'spigot.yml'))) {
+            type = 'spigot';
+        } else if (fs.existsSync(path.join(this.serverDir, 'server.properties'))) {
+            // Likely vanilla if nothing else matches
+            type = 'vanilla';
+        }
+
+        return { type, version };
+    }
+
     getProperties(): Record<string, string> {
         if (!fs.existsSync(this.propertiesPath)) return {};
 

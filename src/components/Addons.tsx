@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Download, Check, AlertCircle, Loader2, Puzzle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -24,14 +24,23 @@ const Addons = () => {
     const [installed, setInstalled] = useState<Record<string, boolean>>({});
     const [error, setError] = useState<string | null>(null);
 
-    const handleSearch = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!search.trim()) return;
+    const [serverInfo, setServerInfo] = useState<{ type: string, version: string | null } | null>(null);
 
+    const fetchAddons = async (query: string) => {
         setLoading(true);
         setError(null);
         try {
-            const res = await ipcRenderer.invoke('search-addons', search);
+            // Check server info first if needed, but search-addons does it on backend too
+            // Let's get info to display UI hints
+            const details = await ipcRenderer.invoke('get-server-details');
+            setServerInfo(details);
+
+            if (details?.type === 'vanilla') {
+                setLoading(false);
+                return; // Don't search for vanilla
+            }
+
+            const res = await ipcRenderer.invoke('search-addons', query);
             if (res.success) {
                 setResults(res.results);
             } else {
@@ -42,6 +51,15 @@ const Addons = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    useEffect(() => {
+        fetchAddons('');
+    }, []);
+
+    const handleSearch = async (e: React.FormEvent) => {
+        e.preventDefault();
+        fetchAddons(search);
     };
 
     const installAddon = async (slug: string) => {
@@ -60,29 +78,57 @@ const Addons = () => {
         }
     };
 
+    // Helper to get loader compatible text
+    const getLoaderText = (type: string) => {
+        if (type === 'fabric') return 'Fabric Mods';
+        if (['paper', 'spigot', 'bukkit'].includes(type)) return 'Plugins (Paper/Spigot)';
+        if (type === 'vanilla') return 'Vanilla';
+        return 'All Add-ons';
+    };
+
     return (
         <div className="h-full flex flex-col gap-6">
             {/* Header / Search */}
-            <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                    <Puzzle className="text-purple-400" /> {t('addons')}
-                </h2>
+            <div className="flex flex-col gap-4">
+                <div className="flex justify-between items-center">
+                    <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+                        <Puzzle className="text-purple-400" /> {t('addons')}
+                    </h2>
 
-                <form onSubmit={handleSearch} className="relative w-96">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder={t('search_addons_placeholder')}
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-purple-500/50 transition-all shadow-inner"
-                    />
-                </form>
+                    <form onSubmit={handleSearch} className="relative w-96">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                        <input
+                            type="text"
+                            placeholder={t('search_addons_placeholder')}
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            disabled={serverInfo?.type === 'vanilla'}
+                            className="w-full bg-black/40 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:outline-none focus:border-purple-500/50 transition-all shadow-inner disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                    </form>
+                </div>
+
+                {/* Context Banner */}
+                {serverInfo && (
+                    <div className={`px-4 py-2 rounded-lg text-sm flex items-center gap-2 ${serverInfo.type === 'vanilla' ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20' : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'}`}>
+                        {serverInfo.type === 'vanilla' ? <AlertCircle size={16} /> : <Check size={16} />}
+                        <span>
+                            {serverInfo.type === 'vanilla'
+                                ? "Vanilla server detected. Add-ons require Fabric, Paper, or Spigot."
+                                : `Browsing ${getLoaderText(serverInfo.type)} for version ${serverInfo.version || 'Any'}`}
+                        </span>
+                    </div>
+                )}
             </div>
 
             {/* Results */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-1">
-                {loading ? (
+                {serverInfo?.type === 'vanilla' ? (
+                    <div className="flex flex-col items-center justify-center h-full text-gray-500 gap-4">
+                        <Puzzle size={48} className="opacity-20" />
+                        <p>Switch to a Fabric or Paper server to install add-ons.</p>
+                    </div>
+                ) : loading ? (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400 gap-4">
                         <Loader2 size={40} className="animate-spin text-purple-500" />
                         <p>{t('searching')}...</p>

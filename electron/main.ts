@@ -189,10 +189,16 @@ ipcMain.handle('reset-server', async () => {
 
 
 // Addons / Plugins
+ipcMain.handle('get-server-details', () => serverManager.getServerDetails());
+
 ipcMain.handle('search-addons', async (_, query) => {
     try {
-        const results = await modrinthClient.searchPlugins(query);
-        return { success: true, results: results.hits };
+        const details = serverManager.getServerDetails();
+        const results = await modrinthClient.searchPlugins(query, 20, {
+            type: details?.type || 'unknown',
+            version: details?.version // undefined is fine, client handles it
+        });
+        return { success: true, results: results.hits, serverType: details?.type };
     } catch (e: any) {
         return { success: false, error: e.message };
     }

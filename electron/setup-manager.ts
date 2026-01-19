@@ -75,6 +75,18 @@ export class SetupManager {
                 this.log('Download complete!');
                 // Auto accept EULA for convenience?
                 fs.writeFileSync(path.join(installPath, 'eula.txt'), 'eula=true');
+
+                // Save metadata
+                try {
+                    fs.writeFileSync(path.join(installPath, 'mineserve.json'), JSON.stringify({
+                        type,
+                        version,
+                        installedAt: new Date().toISOString()
+                    }, null, 2));
+                } catch (e) {
+                    console.error('Failed to save metadata', e);
+                }
+
                 return true;
             });
 

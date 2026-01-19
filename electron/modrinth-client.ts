@@ -9,11 +9,40 @@ export class ModrinthClient {
 
     constructor() { }
 
-    async searchPlugins(query: string, offset: number = 0, limit: number = 20) {
-        // Facet for plugins: project_type:plugin
-        // Facets are stringified JSON arrays of arrays
-        const facets = JSON.stringify([["project_type:plugin"]]);
-        const url = `${this.baseUrl}/search?query=${encodeURIComponent(query)}&facets=${facets}&offset=${offset}&limit=${limit}`;
+    async searchPlugins(query: string, limit: number = 20, filters: { type?: string, version?: string } = {}) {
+        const facets: string[][] = [];
+
+        // Type / Categories
+        // Default: display both mods and plugins if unknown
+        // If "vanilla", show nothing? No, maybe datapacks? Modrinth has datapacks.
+        // Let's assume we map types:
+        // fabric -> ["categories:fabric"] (mods)
+        // paper/spigot -> ["categories:paper", "categories:bukkit", "categories:spigot"] (plugins)
+
+        // Actually Modrinth separates project_type: mod vs plugin
+        // But many mods are just "mod" category fabric.
+
+        if (filters.type === 'fabric') {
+            facets.push(["categories:fabric"]);
+            facets.push(["project_type:mod"]);
+        } else if (['paper', 'spigot', 'bukkit'].includes(filters.type || '')) {
+            // Plugins
+            facets.push(["project_type:plugin"]);
+        } else {
+            // Defaults if mixed or unknown, maybe exclude nothing or search both
+            // If we want to be safe, stick to plugins as default if unsure? No.
+            // Let's just default to "project_type:plugin" AND "project_type:mod" (OR logic)
+            // facet: [["project_type:plugin", "project_type:mod"]]
+            facets.push(["project_type:plugin", "project_type:mod"]);
+        }
+
+        // Version Logic
+        if (filters.version) {
+            facets.push([`versions:${filters.version}`]);
+        }
+
+        const serializedFacets = JSON.stringify(facets);
+        const url = `${this.baseUrl}/search?query=${encodeURIComponent(query)}&facets=${serializedFacets}&limit=${limit}`;
 
         try {
             const response = await fetch(url, {
