@@ -127,7 +127,7 @@ function App() {
                     </div>
                 </div>
 
-                <main className="flex-1 overflow-y-auto p-6 relative flex flex-col">
+                <main className="flex-1 overflow-hidden p-6 relative flex flex-col">
                     <motion.div
                         key={activeTab}
                         initial="hidden"
@@ -228,7 +228,7 @@ function App() {
                             )}
 
                             {activeTab === 'console' && (
-                                <div className="flex flex-col h-full glass-panel rounded-2xl p-6">
+                                <div className="flex flex-col h-full overflow-hidden glass-panel rounded-2xl p-6">
                                     <div className="flex-1 font-mono text-xs text-gray-300 space-y-1 overflow-y-auto custom-scrollbar p-4 bg-black/40 rounded-xl border border-white/5 shadow-inner mb-4">
                                         {logs.map((log, i) => (
                                             <p key={i} className="break-words leading-relaxed">
@@ -259,14 +259,16 @@ function App() {
                             {activeTab === 'addons' && <Addons />}
                             {activeTab === 'server' && <ServerConfig />}
                             {activeTab === 'settings' && (
-                                <Settings
-                                    version={(window as any).process?.version}
-                                    onReset={() => {
-                                        setServerDir('');
-                                        setServerStatus('offline');
-                                        setActiveTab('dashboard');
-                                    }}
-                                />
+                                <div className="h-full overflow-y-auto custom-scrollbar pr-2">
+                                    <Settings
+                                        version={(window as any).process?.version}
+                                        onReset={() => {
+                                            setServerDir('');
+                                            setServerStatus('offline');
+                                            setActiveTab('dashboard');
+                                        }}
+                                    />
+                                </div>
                             )}
                             {activeTab === 'updates' && <Updates />}
                         </div>
