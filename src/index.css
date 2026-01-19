@@ -3,15 +3,8 @@
 @tailwind utilities;
 
 :root {
-    --bg-dark: #0f0f13;
-    --bg-card: #1a1a20;
-    --accent-primary: #6366f1;
-    --accent-secondary: #a855f7;
-    --text-primary: #ffffff;
-    --text-secondary: #9ca3af;
-    --glass-border: rgba(255, 255, 255, 0.1);
-    --danger: #ef4444;
-    --success: #22c55e;
+    --bg-dark: #050510;
+    --glass-border: rgba(255, 255, 255, 0.08);
     --font-main: 'Inter', system-ui, sans-serif;
 }
 
@@ -25,11 +18,59 @@
 body {
     font-family: var(--font-main);
     background-color: var(--bg-dark);
-    color: var(--text-primary);
+    color: #ffffff;
     overflow: hidden;
-    /* App-like feel */
     height: 100vh;
     width: 100vw;
+}
+
+/* Liquid Background Mesh */
+.liquid-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    background: radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.15) 0%, transparent 25%),
+        radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.10) 0%, transparent 25%),
+        radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.10) 0%, transparent 25%);
+    filter: blur(40px);
+    animation: pulse-liquid 10s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-liquid {
+    0% {
+        transform: scale(1);
+        opacity: 0.8;
+    }
+
+    100% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
+
+/* Glass Utilities */
+.glass-panel {
+    background: rgba(20, 20, 25, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.03) 100%);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+    transform: translateY(-2px);
 }
 
 #root {
@@ -38,9 +79,10 @@ body {
     flex-direction: column;
 }
 
-/* Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
@@ -48,15 +90,15 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: #333;
-    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #444;
+    background: rgba(255, 255, 255, 0.2);
 }
 
-/* Utility Animations */
 .drag-region {
     -webkit-app-region: drag;
 }
@@ -65,18 +107,14 @@ body {
     -webkit-app-region: no-drag;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
 }
 
-.animate-fade-in {
-    animation: fadeIn 0.4s ease-out forwards;
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
