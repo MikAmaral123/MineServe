@@ -10,6 +10,7 @@ export class ServerManager {
     private window: BrowserWindow | null = null;
     private configPath: string = '';
     private propertiesPath: string = '';
+    private currentPlayers: number = 0;
 
     constructor() { }
 
@@ -68,8 +69,6 @@ export class ServerManager {
     saveProperties(props: Record<string, string>) {
         if (!this.serverDir) return;
 
-        // Read existing file to preserve comments if possible, but for now simple overwrite
-        // Actually, let's try to preserve header
         let content = '#Minecraft server properties\n#' + new Date().toString() + '\n';
 
         Object.entries(props).forEach(([key, value]) => {
@@ -96,6 +95,10 @@ export class ServerManager {
         this.log('Starting server...');
         this.notifyStatus('starting');
 
+        // Reset player count on start
+        this.currentPlayers = 0;
+        this.notifyPlayerCount();
+
         // Check if eula.txt exists and is true
         const eulaPath = path.join(this.serverDir, 'eula.txt');
         if (!fs.existsSync(eulaPath) || !fs.readFileSync(eulaPath, 'utf8').includes('eula=true')) {
@@ -110,6 +113,16 @@ export class ServerManager {
         this.process.stdout?.on('data', (data) => {
             const line = data.toString();
             this.log(line);
+
+            // Player detection logic
+            if (line.includes('joined the game')) {
+                this.currentPlayers++;
+                this.notifyPlayerCount();
+            } else if (line.includes('left the game') || line.includes('lost connection')) {
+                this.currentPlayers = Math.max(0, this.currentPlayers - 1);
+                this.notifyPlayerCount();
+            }
+
             if (line.includes('Done') && line.includes('!')) {
                 this.notifyStatus('online');
             }
@@ -123,6 +136,8 @@ export class ServerManager {
             this.log(`Server stopped with code ${code}`);
             this.process = null;
             this.notifyStatus('offline');
+            this.currentPlayers = 0;
+            this.notifyPlayerCount();
         });
     }
 
@@ -152,6 +167,12 @@ export class ServerManager {
     private notifyStatus(status: string) {
         if (this.window) {
             this.window.webContents.send('server-status', status);
+        }
+    }
+
+    private notifyPlayerCount() {
+        if (this.window) {
+            this.window.webContents.send('player-count-update', this.currentPlayers);
         }
     }
 }

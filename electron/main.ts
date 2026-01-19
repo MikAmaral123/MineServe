@@ -91,6 +91,10 @@ ipcMain.on('minimize-window', () => win?.minimize())
 ipcMain.on('maximize-window', () => win?.isMaximized() ? win.unmaximize() : win?.maximize())
 ipcMain.on('close-window', () => win?.close())
 
+ipcMain.handle('get-saved-dir', () => {
+    return serverManager.getServerDir();
+});
+
 // Server Controls
 ipcMain.on('select-server-dir', async () => {
     const result = await dialog.showOpenDialog(win!, {
@@ -221,4 +225,4 @@ autoUpdater.on('update-downloaded', (info) => {
     win?.webContents.send('update-status', { status: 'downloaded', info });
 });
 
-app.whenReady().then(createWindow);
+

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { RefreshCw, Download, Info, Check, AlertCircle, ArrowUpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ReactMarkdown from 'react-markdown';
 
 // Mock IPC
 const { ipcRenderer } = window.require ? window.require('electron') : { ipcRenderer: { invoke: async () => ({}), on: () => { } } };
@@ -139,18 +140,30 @@ const Updates = () => {
                         key="available"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6 w-full max-w-md"
+                        className="space-y-6 w-full max-w-2xl"
                     >
-                        <div className="w-20 h-20 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto text-blue-400">
-                            <ArrowUpCircle size={40} />
-                        </div>
-                        <div>
-                            <h3 className="text-2xl font-bold text-white">Update Available</h3>
-                            <p className="text-cyan-400 font-mono text-lg mt-1">v{info?.version}</p>
-                            <div className="mt-4 p-4 bg-black/40 rounded-xl text-left border border-white/5 max-h-40 overflow-y-auto">
-                                <p className="text-xs text-gray-400 font-mono whitespace-pre-wrap">{JSON.stringify(info, null, 2)}</p>
+                        <div className="flex items-center justify-center gap-4">
+                            <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center text-blue-400">
+                                <ArrowUpCircle size={32} />
+                            </div>
+                            <div className="text-left">
+                                <h3 className="text-2xl font-bold text-white">Update Available</h3>
+                                <p className="text-cyan-400 font-mono text-lg">v{info?.version}</p>
                             </div>
                         </div>
+
+                        <div className="p-6 bg-black/40 rounded-xl text-left border border-white/5 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            <article className="prose prose-invert prose-sm max-w-none prose-headings:text-cyan-400 prose-a:text-blue-400">
+                                <ReactMarkdown>
+                                    {typeof info?.releaseNotes === 'string'
+                                        ? info.releaseNotes
+                                        : (Array.isArray(info?.releaseNotes)
+                                            ? info.releaseNotes.map((n: any) => n.note).join('\n')
+                                            : 'No release notes available.')}
+                                </ReactMarkdown>
+                            </article>
+                        </div>
+
                         <button
                             onClick={downloadUpdate}
                             className="w-full py-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-xl shadow-lg hover:scale-105 transition-transform flex items-center justify-center gap-2"

@@ -26,14 +26,25 @@ function App() {
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [serverDir, setServerDir] = useState<string>('');
     const [maxPlayers, setMaxPlayers] = useState<string>('-');
+    const [currentPlayers, setCurrentPlayers] = useState<number>(0);
     const consoleEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        // Explicitly check for saved dir on mount
+        ipcRenderer.invoke('get-saved-dir').then((dir: any) => {
+            if (dir) {
+                setServerDir(dir);
+                fetchMaxPlayers();
+            }
+        });
+
         ipcRenderer.on('server-status', (_: any, status: any) => setServerStatus(status));
         ipcRenderer.on('server-dir-selected', (_: any, dir: any) => {
             setServerDir(dir);
             fetchMaxPlayers();
         });
+
+        ipcRenderer.on('player-count-update', (_: any, count: number) => setCurrentPlayers(count));
 
         ipcRenderer.on('console-log', (_: any, log: LogEntry) => {
             setLogs(prev => [...prev.slice(-100), log]); // Keep last 100 logs
@@ -46,8 +57,9 @@ function App() {
             ipcRenderer.removeAllListeners('server-status');
             ipcRenderer.removeAllListeners('console-log');
             ipcRenderer.removeAllListeners('server-dir-selected');
+            ipcRenderer.removeAllListeners('player-count-update');
         };
-    }, [serverDir]);
+    }, []); // Run once on mount
 
     const fetchMaxPlayers = async () => {
         try {
@@ -173,7 +185,7 @@ function App() {
                                 />
                                 <StatusCard
                                     title="Players"
-                                    value="0"
+                                    value={currentPlayers.toString()}
                                     subValue={`/ ${maxPlayers}`}
                                     icon={Users}
                                     color="text-yellow-400"
