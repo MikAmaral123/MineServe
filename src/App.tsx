@@ -8,6 +8,8 @@ import ServerConfig from './components/ServerConfig';
 import WelcomeWizard from './components/WelcomeWizard';
 import Settings from './components/Settings';
 import Updates from './components/Updates';
+import Players from './components/Players';
+import { useTranslation } from 'react-i18next';
 
 // ... (existing helper function remain same)
 
@@ -21,6 +23,7 @@ type LogEntry = {
 };
 
 function App() {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState('dashboard');
     const [serverStatus, setServerStatus] = useState<'offline' | 'starting' | 'online' | 'stopping'>('offline');
     const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -103,6 +106,16 @@ function App() {
         );
     }
 
+    // Map tab IDs to translated titles
+    const tabTitles: Record<string, string> = {
+        dashboard: t('dashboard'),
+        console: t('console'),
+        players: t('players'),
+        server: t('server_config'),
+        settings: t('settings'),
+        updates: t('updates')
+    };
+
     return (
         <div className="h-screen flex flex-col bg-dark text-white overflow-hidden font-sans">
             <TitleBar />
@@ -125,10 +138,10 @@ function App() {
                         <header className="mb-8 flex justify-between items-end shrink-0">
                             <div>
                                 <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 capitalize">
-                                    {activeTab}
+                                    {tabTitles[activeTab] || activeTab}
                                 </h1>
                                 <p className="text-gray-400 mt-1">
-                                    {serverDir ? serverDir : 'No server directory selected'}
+                                    {serverDir ? serverDir : t('no_server_selected')}
                                 </p>
                             </div>
 
@@ -139,7 +152,7 @@ function App() {
                                         className="flex items-center gap-2 px-6 py-2.5 bg-card border border-glass-border rounded-lg text-white hover:bg-white/5 transition-all"
                                     >
                                         <FolderOpen size={18} />
-                                        Select Server
+                                        {t('select_server')}
                                     </button>
                                 )}
                                 {serverDir && serverStatus === 'offline' && (
@@ -148,7 +161,7 @@ function App() {
                                         className="flex items-center gap-2 px-6 py-2.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/20 transition-all font-medium group"
                                     >
                                         <Play size={18} className="fill-current group-hover:scale-110 transition-transform" />
-                                        Start Server
+                                        {t('start_server')}
                                     </button>
                                 )}
                                 {serverStatus !== 'offline' && (
@@ -161,7 +174,7 @@ function App() {
                                         disabled={serverStatus === 'stopping'}
                                     >
                                         <Square size={18} className="fill-current group-hover:scale-110 transition-transform" />
-                                        {serverStatus === 'stopping' ? 'Stopping...' : 'Stop'}
+                                        {serverStatus === 'stopping' ? t('stopping') : t('stop_server')}
                                     </button>
                                 )}
                             </div>
@@ -170,21 +183,21 @@ function App() {
                         {activeTab === 'dashboard' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <StatusCard
-                                    title="Status"
-                                    value={serverStatus.toUpperCase()}
+                                    title={t('status')}
+                                    value={t(serverStatus) || serverStatus.toUpperCase()}
                                     icon={Activity}
                                     color={serverStatus === 'online' ? 'text-green-400' : 'text-gray-400'}
                                     bg={serverStatus === 'online' ? 'bg-green-400/10' : 'bg-gray-400/10'}
                                 />
                                 <StatusCard
-                                    title="Folder"
-                                    value={serverDir ? 'Linked' : 'Not Set'}
+                                    title={t('folder')}
+                                    value={serverDir ? t('linked') : t('not_set')}
                                     icon={FolderOpen}
                                     color="text-blue-400"
                                     bg="bg-blue-400/10"
                                 />
                                 <StatusCard
-                                    title="Players"
+                                    title={t('players')}
                                     value={currentPlayers.toString()}
                                     subValue={`/ ${maxPlayers}`}
                                     icon={Users}
@@ -194,7 +207,7 @@ function App() {
 
                                 <div className="col-span-1 lg:col-span-3 bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6 h-96 flex flex-col justify-between">
                                     <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
-                                        <Terminal size={20} /> Console
+                                        <Terminal size={20} /> {t('console')}
                                     </h3>
                                     <div className="flex-1 font-mono text-xs text-gray-400 space-y-1 overflow-y-auto custom-scrollbar p-4 bg-black/40 rounded-xl border border-glass-border/50">
                                         {logs.map((log, i) => (
@@ -237,6 +250,10 @@ function App() {
                                     </button>
                                 </form>
                             </div>
+                        )}
+
+                        {activeTab === 'players' && (
+                            <Players />
                         )}
 
                         {activeTab === 'server' && (

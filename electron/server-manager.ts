@@ -10,7 +10,7 @@ export class ServerManager {
     private window: BrowserWindow | null = null;
     private configPath: string = '';
     private propertiesPath: string = '';
-    private currentPlayers: number = 0;
+    private players: Set<string> = new Set();
 
     constructor() { }
 
@@ -96,8 +96,8 @@ export class ServerManager {
         this.notifyStatus('starting');
 
         // Reset player count on start
-        this.currentPlayers = 0;
-        this.notifyPlayerCount();
+        this.players.clear();
+        this.notifyPlayersUpdate();
 
         // Check if eula.txt exists and is true
         const eulaPath = path.join(this.serverDir, 'eula.txt');
@@ -114,13 +114,18 @@ export class ServerManager {
             const line = data.toString();
             this.log(line);
 
-            // Player detection logic
-            if (line.includes('joined the game')) {
-                this.currentPlayers++;
-                this.notifyPlayerCount();
-            } else if (line.includes('left the game') || line.includes('lost connection')) {
-                this.currentPlayers = Math.max(0, this.currentPlayers - 1);
-                this.notifyPlayerCount();
+            // Player detection logic via regex for standard formats
+            // Format: [HH:mm:ss] [Server thread/INFO]: <Name> joined the game
+            const joinMatch = line.match(/: (.+) joined the game/);
+            if (joinMatch) {
+                this.players.add(joinMatch[1]);
+                this.notifyPlayersUpdate();
+            }
+
+            const leaveMatch = line.match(/: (.+) left the game/);
+            if (leaveMatch) {
+                this.players.delete(leaveMatch[1]);
+                this.notifyPlayersUpdate();
             }
 
             if (line.includes('Done') && line.includes('!')) {
@@ -136,8 +141,8 @@ export class ServerManager {
             this.log(`Server stopped with code ${code}`);
             this.process = null;
             this.notifyStatus('offline');
-            this.currentPlayers = 0;
-            this.notifyPlayerCount();
+            this.players.clear();
+            this.notifyPlayersUpdate();
         });
     }
 
@@ -158,6 +163,25 @@ export class ServerManager {
         }
     }
 
+    // Admin Commands
+    kickPlayer(player: string, reason: string) {
+        this.sendCommand(`kick ${player} ${reason}`);
+    }
+
+    banPlayer(player: string, reason: string, duration?: string) {
+        // Vanilla doesn't support tempban easily without plugins, but we can try vanilla ban
+        // If "duration" is passed, it might be for Essentials, but vanilla is just "ban <target> [reason]"
+        this.sendCommand(`ban ${player} ${reason}`);
+    }
+
+    opPlayer(player: string) {
+        this.sendCommand(`op ${player}`);
+    }
+
+    deopPlayer(player: string) {
+        this.sendCommand(`deop ${player}`);
+    }
+
     private log(message: string, type: 'info' | 'error' = 'info') {
         if (this.window) {
             this.window.webContents.send('console-log', { message: message.trim(), type, timestamp: new Date().toLocaleTimeString() });
@@ -170,9 +194,11 @@ export class ServerManager {
         }
     }
 
-    private notifyPlayerCount() {
+    private notifyPlayersUpdate() {
         if (this.window) {
-            this.window.webContents.send('player-count-update', this.currentPlayers);
+            // Send both count and list
+            this.window.webContents.send('player-count-update', this.players.size);
+            this.window.webContents.send('player-list-update', Array.from(this.players));
         }
     }
 }

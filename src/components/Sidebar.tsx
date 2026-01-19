@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
-import { Server, Settings, Terminal, Activity, RefreshCw } from 'lucide-react';
+import { Server, Settings, Terminal, Activity, RefreshCw, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type SidebarProps = {
     activeTab: string;
@@ -7,12 +8,15 @@ type SidebarProps = {
 };
 
 const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
+    const { t } = useTranslation();
+
     const menuItems = [
-        { id: 'dashboard', icon: Activity, label: 'Dashboard' },
-        { id: 'console', icon: Terminal, label: 'Console' },
-        { id: 'server', icon: Server, label: 'Server Config' },
-        { id: 'settings', icon: Settings, label: 'Settings' },
-        { id: 'updates', icon: RefreshCw, label: 'Updates' },
+        { id: 'dashboard', icon: Activity, label: t('dashboard') },
+        { id: 'console', icon: Terminal, label: t('console') },
+        { id: 'players', icon: Users, label: t('players') },
+        { id: 'server', icon: Server, label: t('server_config') },
+        { id: 'settings', icon: Settings, label: t('settings') },
+        { id: 'updates', icon: RefreshCw, label: t('updates') },
     ];
 
     return (
@@ -47,7 +51,7 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
                         <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e]" />
                         <span className="text-xs font-medium text-gray-300">System Online</span>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-2">v1.0.0 Stable</p>
+                    <p className="text-[10px] text-gray-500 mt-2">v1.0.3 Stable</p>
                 </div>
             </div>
         </div>

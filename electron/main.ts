@@ -111,6 +111,10 @@ ipcMain.on('select-server-dir', async () => {
 ipcMain.on('start-server', () => serverManager.start())
 ipcMain.on('stop-server', () => serverManager.stop())
 ipcMain.on('send-command', (_, cmd) => serverManager.sendCommand(cmd))
+ipcMain.on('kick-player', (_, { player, reason }) => serverManager.kickPlayer(player, reason))
+ipcMain.on('ban-player', (_, { player, reason, duration }) => serverManager.banPlayer(player, reason, duration))
+ipcMain.on('op-player', (_, player) => serverManager.opPlayer(player))
+ipcMain.on('deop-player', (_, player) => serverManager.deopPlayer(player))
 
 ipcMain.handle('get-properties', () => serverManager.getProperties())
 ipcMain.on('save-properties', (_, props) => serverManager.saveProperties(props))

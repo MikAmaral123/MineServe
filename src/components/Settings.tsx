@@ -1,19 +1,24 @@
 import { useState } from 'react';
-import { Trash2, Save, Archive, Clock, ShieldAlert } from 'lucide-react';
-
+import { Trash2, Save, Archive, Clock, ShieldAlert, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 // Mock IPC
 const { ipcRenderer } = window.require ? window.require('electron') : { ipcRenderer: { invoke: async () => { }, send: () => { } } };
 
 const Settings = ({ version, onReset }: { version: string, onReset: () => void }) => {
+    const { t, i18n } = useTranslation();
     const [backupConfig, setBackupConfig] = useState({
         enabled: false,
         interval: 30,
         onStop: true
     });
 
+    const changeLanguage = (lng: string) => {
+        i18n.changeLanguage(lng);
+    };
+
     const handleReset = async () => {
-        if (confirm('ARE YOU SURE? This will delete your server files (world, configs, jars). Backups will be preserved.')) {
+        if (confirm(t('reset_warning'))) {
             await ipcRenderer.invoke('reset-server');
             onReset();
         }
@@ -29,6 +34,34 @@ const Settings = ({ version, onReset }: { version: string, onReset: () => void }
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
+            {/* General Settings */}
+            <div className="bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6">
+                <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                    <Globe size={20} className="text-purple-400" />
+                    {t('settings')}
+                </h3>
+
+                <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-black/20 rounded-xl">
+                        <span className="text-gray-300">{t('language')}</span>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => changeLanguage('en')}
+                                className={`px-3 py-1 rounded-lg text-sm transition-colors ${i18n.language === 'en' ? 'bg-primary text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+                            >
+                                English
+                            </button>
+                            <button
+                                onClick={() => changeLanguage('fr')}
+                                className={`px-3 py-1 rounded-lg text-sm transition-colors ${i18n.language === 'fr' ? 'bg-primary text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+                            >
+                                Français
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* Backup Settings */}
             <div className="bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
@@ -101,8 +134,7 @@ const Settings = ({ version, onReset }: { version: string, onReset: () => void }
                 </h3>
 
                 <p className="text-gray-400 text-sm mb-6">
-                    Resetting the server will delete all world data, configurations, and the server jar.
-                    Backups will be kept in the backups folder.
+                    {t('reset_warning')}
                 </p>
 
                 <button
@@ -110,12 +142,12 @@ const Settings = ({ version, onReset }: { version: string, onReset: () => void }
                     className="w-full py-4 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl hover:bg-red-500/20 transition-all font-bold flex items-center justify-center gap-2 hover:scale-[1.02]"
                 >
                     <Trash2 size={20} />
-                    RESET SERVER
+                    {t('reset_app').toUpperCase()}
                 </button>
             </div>
 
             <div className="col-span-1 md:col-span-2 text-center text-gray-500 text-sm mt-4">
-                MineServe v1.0.0 • Running on Java {version}
+                MineServe v1.0.3 • Running on Java {version}
             </div>
         </div>
     );
