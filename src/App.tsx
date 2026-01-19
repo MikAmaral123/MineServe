@@ -1,0 +1,260 @@
+import { useState, useEffect, useRef } from 'react';
+import TitleBar from './components/TitleBar';
+import Sidebar from './components/Sidebar';
+import { Play, Square, Activity, Users, FolderOpen, Terminal } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { cn } from './lib/utils';
+import ServerConfig from './components/ServerConfig';
+import WelcomeWizard from './components/WelcomeWizard';
+import Settings from './components/Settings';
+import Updates from './components/Updates';
+
+// ... (existing helper function remain same)
+
+// Electron IPC (Node Integration Mock for TS)
+const { ipcRenderer } = window.require ? window.require('electron') : { ipcRenderer: { on: () => { }, send: () => { }, invoke: async () => ({}) } };
+
+type LogEntry = {
+    message: string;
+    type: 'info' | 'error';
+    timestamp: string;
+};
+
+function App() {
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [serverStatus, setServerStatus] = useState<'offline' | 'starting' | 'online' | 'stopping'>('offline');
+    const [logs, setLogs] = useState<LogEntry[]>([]);
+    const [serverDir, setServerDir] = useState<string>('');
+    const consoleEndRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        ipcRenderer.on('server-status', (_: any, status: any) => setServerStatus(status));
+        ipcRenderer.on('server-dir-selected', (_: any, dir: any) => setServerDir(dir));
+
+        ipcRenderer.on('console-log', (_: any, log: LogEntry) => {
+            setLogs(prev => [...prev.slice(-100), log]); // Keep last 100 logs
+        });
+
+        return () => {
+            ipcRenderer.removeAllListeners('server-status');
+            ipcRenderer.removeAllListeners('console-log');
+            ipcRenderer.removeAllListeners('server-dir-selected');
+        };
+    }, []);
+
+    useEffect(() => {
+        consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [logs]);
+
+    const handleSelectDir = () => ipcRenderer.send('select-server-dir');
+    const handleStart = () => ipcRenderer.send('start-server');
+    const handleStop = () => ipcRenderer.send('stop-server');
+    const handleCommand = (e: React.FormEvent) => {
+        e.preventDefault();
+        const input = (e.target as any).command.value;
+        if (input) {
+            ipcRenderer.send('send-command', input);
+            (e.target as any).reset();
+        }
+    };
+
+    const contentVariants = {
+        hidden: { opacity: 0, scale: 0.98 },
+        visible: { opacity: 1, scale: 1, transition: { duration: 0.3, ease: 'easeOut' } },
+        exit: { opacity: 0, scale: 0.98, transition: { duration: 0.2 } }
+    };
+
+    if (!serverDir) {
+        return (
+            <div className="h-screen flex flex-col bg-dark text-white overflow-hidden font-sans">
+                <TitleBar />
+                <WelcomeWizard onComplete={(path) => setServerDir(path)} />
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-screen flex flex-col bg-dark text-white overflow-hidden font-sans">
+            <TitleBar />
+
+            <div className="flex-1 flex overflow-hidden">
+                <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+
+                <main className="flex-1 overflow-y-auto p-8 relative flex flex-col">
+                    {/* Background Ambient Glow */}
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+
+                    <motion.div
+                        key={activeTab}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        variants={contentVariants}
+                        className="relative z-10 max-w-6xl mx-auto w-full flex-1 flex flex-col"
+                    >
+                        <header className="mb-8 flex justify-between items-end shrink-0">
+                            <div>
+                                <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400 capitalize">
+                                    {activeTab}
+                                </h1>
+                                <p className="text-gray-400 mt-1">
+                                    {serverDir ? serverDir : 'No server directory selected'}
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3">
+                                {!serverDir && (
+                                    <button
+                                        onClick={handleSelectDir}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-card border border-glass-border rounded-lg text-white hover:bg-white/5 transition-all"
+                                    >
+                                        <FolderOpen size={18} />
+                                        Select Server
+                                    </button>
+                                )}
+                                {serverDir && serverStatus === 'offline' && (
+                                    <button
+                                        onClick={handleStart}
+                                        className="flex items-center gap-2 px-6 py-2.5 bg-green-500/10 text-green-400 border border-green-500/20 rounded-lg hover:bg-green-500/20 transition-all font-medium group"
+                                    >
+                                        <Play size={18} className="fill-current group-hover:scale-110 transition-transform" />
+                                        Start Server
+                                    </button>
+                                )}
+                                {serverStatus !== 'offline' && (
+                                    <button
+                                        onClick={handleStop}
+                                        className={cn(
+                                            "flex items-center gap-2 px-6 py-2.5 text-red-400 border border-red-500/20 rounded-lg transition-all font-medium group",
+                                            serverStatus === 'stopping' ? "bg-red-500/20 cursor-wait" : "bg-red-500/10 hover:bg-red-500/20"
+                                        )}
+                                        disabled={serverStatus === 'stopping'}
+                                    >
+                                        <Square size={18} className="fill-current group-hover:scale-110 transition-transform" />
+                                        {serverStatus === 'stopping' ? 'Stopping...' : 'Stop'}
+                                    </button>
+                                )}
+                            </div>
+                        </header>
+
+                        {activeTab === 'dashboard' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                <StatusCard
+                                    title="Status"
+                                    value={serverStatus.toUpperCase()}
+                                    icon={Activity}
+                                    color={serverStatus === 'online' ? 'text-green-400' : 'text-gray-400'}
+                                    bg={serverStatus === 'online' ? 'bg-green-400/10' : 'bg-gray-400/10'}
+                                />
+                                <StatusCard
+                                    title="Folder"
+                                    value={serverDir ? 'Linked' : 'Not Set'}
+                                    icon={FolderOpen}
+                                    color="text-blue-400"
+                                    bg="bg-blue-400/10"
+                                />
+                                <StatusCard
+                                    title="Players"
+                                    value="-"
+                                    subValue="/ -"
+                                    icon={Users}
+                                    color="text-yellow-400"
+                                    bg="bg-yellow-400/10"
+                                />
+
+                                <div className="col-span-1 lg:col-span-3 bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6 h-96 flex flex-col justify-between">
+                                    <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
+                                        <Terminal size={20} /> Console
+                                    </h3>
+                                    <div className="flex-1 font-mono text-xs text-gray-400 space-y-1 overflow-y-auto custom-scrollbar p-4 bg-black/40 rounded-xl border border-glass-border/50">
+                                        {logs.map((log, i) => (
+                                            <p key={i} className="break-words">
+                                                <span className='text-gray-600 mr-2'>[{log.timestamp}]</span>
+                                                <span className={log.type === 'error' ? 'text-red-400' : 'text-gray-300'}>
+                                                    {log.message}
+                                                </span>
+                                            </p>
+                                        ))}
+                                        <div ref={consoleEndRef} />
+                                        {logs.length === 0 && <p className="text-gray-600 italic">Server logs will appear here...</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'console' && (
+                            <div className="flex flex-col h-[calc(100vh-200px)] bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6">
+                                <div className="flex-1 font-mono text-xs text-gray-400 space-y-1 overflow-y-auto custom-scrollbar p-4 bg-black/40 rounded-xl border border-glass-border/50 mb-4">
+                                    {logs.map((log, i) => (
+                                        <p key={i} className="break-words">
+                                            <span className='text-gray-600 mr-2'>[{log.timestamp}]</span>
+                                            <span className={log.type === 'error' ? 'text-red-400' : 'text-gray-300'}>
+                                                {log.message}
+                                            </span>
+                                        </p>
+                                    ))}
+                                    <div ref={consoleEndRef} />
+                                </div>
+                                <form onSubmit={handleCommand} className="flex gap-2">
+                                    <input
+                                        name="command"
+                                        type="text"
+                                        placeholder="Type a command..."
+                                        className="flex-1 bg-black/40 border border-glass-border rounded-lg px-4 py-3 text-white focus:outline-none focus:border-primary/50 transition-colors"
+                                    />
+                                    <button type="submit" className="px-6 py-2 bg-primary/20 hover:bg-primary/30 text-primary rounded-lg font-medium transition-colors">
+                                        Send
+                                    </button>
+                                </form>
+                            </div>
+                        )}
+
+                        {activeTab === 'server' && (
+                            <div className="grid grid-cols-1 gap-6">
+                                <ServerConfig />
+                            </div>
+                        )}
+
+                        {activeTab === 'settings' && (
+                            <Settings
+                                version={(window as any).process?.version}
+                                onReset={() => {
+                                    setServerDir('');
+                                    setServerStatus('offline');
+                                    setActiveTab('dashboard');
+                                }}
+                            />
+                        )}
+
+                        {activeTab === 'updates' && (
+                            <Updates />
+                        )}
+
+                    </motion.div>
+                </main>
+            </div>
+        </div>
+    );
+}
+
+const StatusCard = ({ title, value, subValue, icon: Icon, color, bg, trend }: any) => (
+    <div className="bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6 hover:bg-card/60 transition-colors group">
+        <div className="flex justify-between items-start mb-4">
+            <div className={`p-3 rounded-xl ${bg} ${color}`}>
+                <Icon size={24} />
+            </div>
+            {trend && (
+                <span className="text-xs font-medium text-green-400 bg-green-400/10 px-2 py-1 rounded-full">
+                    {trend}
+                </span>
+            )}
+        </div>
+        <h3 className="text-gray-400 text-sm font-medium">{title}</h3>
+        <div className="flex items-baseline gap-2 mt-1">
+            <span className="text-2xl font-bold text-white group-hover:scale-105 transition-transform origin-left block">{value}</span>
+            {subValue && <span className="text-gray-500 text-sm">{subValue}</span>}
+        </div>
+    </div>
+)
+
+export default App;
