@@ -25,22 +25,40 @@ function App() {
     const [serverStatus, setServerStatus] = useState<'offline' | 'starting' | 'online' | 'stopping'>('offline');
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [serverDir, setServerDir] = useState<string>('');
+    const [maxPlayers, setMaxPlayers] = useState<string>('-');
     const consoleEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         ipcRenderer.on('server-status', (_: any, status: any) => setServerStatus(status));
-        ipcRenderer.on('server-dir-selected', (_: any, dir: any) => setServerDir(dir));
+        ipcRenderer.on('server-dir-selected', (_: any, dir: any) => {
+            setServerDir(dir);
+            fetchMaxPlayers();
+        });
 
         ipcRenderer.on('console-log', (_: any, log: LogEntry) => {
             setLogs(prev => [...prev.slice(-100), log]); // Keep last 100 logs
         });
+
+        // Initial fetch if dir exists
+        if (serverDir) fetchMaxPlayers();
 
         return () => {
             ipcRenderer.removeAllListeners('server-status');
             ipcRenderer.removeAllListeners('console-log');
             ipcRenderer.removeAllListeners('server-dir-selected');
         };
-    }, []);
+    }, [serverDir]);
+
+    const fetchMaxPlayers = async () => {
+        try {
+            const props = await ipcRenderer.invoke('get-properties');
+            if (props && props['max-players']) {
+                setMaxPlayers(props['max-players']);
+            }
+        } catch (e) {
+            console.error("Failed to fetch properties", e);
+        }
+    };
 
     useEffect(() => {
         consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -155,8 +173,8 @@ function App() {
                                 />
                                 <StatusCard
                                     title="Players"
-                                    value="-"
-                                    subValue="/ -"
+                                    value="0"
+                                    subValue={`/ ${maxPlayers}`}
                                     icon={Users}
                                     color="text-yellow-400"
                                     bg="bg-yellow-400/10"

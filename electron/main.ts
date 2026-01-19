@@ -45,13 +45,34 @@ function createWindow() {
     } else {
         win.loadFile(path.join(__dirname, '../index.html'))
     }
+
+    win.webContents.on('did-finish-load', () => {
+        const dir = serverManager.getServerDir();
+        if (dir) {
+            win?.webContents.send('server-dir-selected', dir);
+        }
+    });
 }
 
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
-})
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    app.quit();
+} else {
+    app.on('second-instance', () => {
+        // Someone tried to run a second instance, we should focus our window.
+        if (win) {
+            if (win.isMinimized()) win.restore();
+            win.focus();
+        }
+    });
+
+    app.on('window-all-closed', () => {
+        if (process.platform !== 'darwin') {
+            app.quit()
+        }
+    })
+}
 
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -59,7 +80,11 @@ app.on('activate', () => {
     }
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+    // Load persisted config
+    serverManager.loadConfig(app.getPath('userData'));
+    createWindow();
+});
 
 // Window Controls
 ipcMain.on('minimize-window', () => win?.minimize())
@@ -150,3 +175,50 @@ ipcMain.handle('reset-server', async () => {
         return false;
     }
 })
+// --- Auto Update Handlers ---
+ipcMain.handle('check-for-updates', async () => {
+    if (!app.isPackaged) {
+        return { status: 'dev-mode', message: 'Updates not available in dev mode' };
+    }
+    try {
+        const result = await autoUpdater.checkForUpdates();
+        return result;
+    } catch (error: any) {
+        return { status: 'error', message: error.message };
+    }
+});
+
+ipcMain.handle('download-update', () => {
+    return autoUpdater.downloadUpdate();
+});
+
+ipcMain.handle('quit-and-install', () => {
+    autoUpdater.quitAndInstall();
+});
+
+// --- Update Events ---
+autoUpdater.on('checking-for-update', () => {
+    win?.webContents.send('update-status', { status: 'checking' });
+});
+
+autoUpdater.on('update-available', (info) => {
+    win?.webContents.send('update-status', { status: 'available', info });
+});
+
+autoUpdater.on('update-not-available', (info) => {
+    win?.webContents.send('update-status', { status: 'not-available', info });
+});
+
+autoUpdater.on('error', (err) => {
+    win?.webContents.send('update-status', { status: 'error', error: err.message });
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+    win?.webContents.send('update-status', { status: 'downloading', progress: progressObj });
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    win?.webContents.send('update-status', { status: 'downloaded', info });
+});
+
+app.whenReady().then(createWindow);

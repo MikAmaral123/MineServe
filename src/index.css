@@ -57,6 +57,14 @@ body {
 }
 
 /* Utility Animations */
+.drag-region {
+    -webkit-app-region: drag;
+}
+
+.no-drag-region {
+    -webkit-app-region: no-drag;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;

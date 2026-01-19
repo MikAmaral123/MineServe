@@ -8,9 +8,25 @@ export class ServerManager {
     private serverDir: string = '';
     private jarName: string = 'server.jar';
     private window: BrowserWindow | null = null;
+    private configPath: string = '';
     private propertiesPath: string = '';
 
     constructor() { }
+
+    loadConfig(userDataPath: string) {
+        this.configPath = path.join(userDataPath, 'config.json');
+        if (fs.existsSync(this.configPath)) {
+            try {
+                const config = JSON.parse(fs.readFileSync(this.configPath, 'utf8'));
+                if (config.serverDir && fs.existsSync(config.serverDir)) {
+                    this.serverDir = config.serverDir;
+                    this.propertiesPath = path.join(this.serverDir, 'server.properties');
+                }
+            } catch (e) {
+                console.error('Failed to load config', e);
+            }
+        }
+    }
 
     setWindow(win: BrowserWindow) {
         this.window = win;
@@ -19,6 +35,15 @@ export class ServerManager {
     setServerDir(dir: string) {
         this.serverDir = dir;
         this.propertiesPath = path.join(dir, 'server.properties');
+
+        // Save to config
+        if (this.configPath) {
+            try {
+                fs.writeFileSync(this.configPath, JSON.stringify({ serverDir: dir }));
+            } catch (e) {
+                console.error('Failed to save config', e);
+            }
+        }
     }
 
     getServerDir() {

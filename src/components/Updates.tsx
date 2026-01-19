@@ -23,11 +23,31 @@ const Updates = () => {
     const checkForUpdates = () => {
         setStatus('checking');
         setError(null);
-        ipcRenderer.invoke('check-for-updates').then((res: any) => {
-            if (res && res.status === 'dev-mode') {
-                setStatus('dev-mode');
+
+        // Timeout to prevent infinite loading if IPC fails
+        const timeout = setTimeout(() => {
+            if (status === 'checking') {
+                setStatus('error');
+                setError('Check timed out. Please check your internet connection.');
             }
-        });
+        }, 15000);
+
+        ipcRenderer.invoke('check-for-updates')
+            .then((res: any) => {
+                clearTimeout(timeout);
+                if (res && res.status === 'dev-mode') {
+                    setStatus('dev-mode');
+                } else if (res && res.status === 'error') {
+                    // Handled by event listener usually, but just in case
+                    setStatus('error');
+                    setError(res.message);
+                }
+            })
+            .catch((err: any) => {
+                clearTimeout(timeout);
+                setStatus('error');
+                setError('Failed to check for updates: ' + err.message);
+            });
     };
 
     const downloadUpdate = () => {
