@@ -24,7 +24,10 @@ export class BackupManager {
     }
 
     async createBackup(name?: string) {
-        if (!this.serverDir) return;
+        if (!this.serverDir) {
+            this.log('Backup failed: No server directory selected', 'error');
+            return;
+        }
 
         this.log('Creating backup...');
         try {
@@ -34,22 +37,39 @@ export class BackupManager {
 
             // Add local files
             const files = fs.readdirSync(this.serverDir);
+            let addedCount = 0;
+            let skippedCount = 0;
+
             for (const file of files) {
                 if (file === 'backups') continue; // Skip backups folder
-                const filePath = path.join(this.serverDir, file);
-                const stat = fs.statSync(filePath);
-                if (stat.isDirectory()) {
-                    zip.addLocalFolder(filePath, file);
-                } else {
-                    zip.addLocalFile(filePath);
+
+                try {
+                    const filePath = path.join(this.serverDir, file);
+                    // Use simple check, assume file if stat fails or just try adding
+                    // AdmZip addLocalFile/Folder are synchronous
+                    const stat = fs.statSync(filePath);
+
+                    if (stat.isDirectory()) {
+                        zip.addLocalFolder(filePath, file);
+                    } else {
+                        zip.addLocalFile(filePath);
+                    }
+                    addedCount++;
+                } catch (e) {
+                    console.error(`Skipping file ${file}:`, e);
+                    skippedCount++;
                 }
             }
 
             const backupPath = path.join(this.backupDir, fileName);
             zip.writeZip(backupPath);
 
-            this.log(`Backup created: ${fileName}`, 'success');
-            return fileName;
+            if (fs.existsSync(backupPath)) {
+                this.log(`Backup created: ${fileName} (${addedCount} files, ${skippedCount} skipped)`, 'success');
+                return fileName;
+            } else {
+                throw new Error('Backup file was not created');
+            }
         } catch (error: any) {
             this.log(`Backup failed: ${error.message}`, 'error');
             throw error;

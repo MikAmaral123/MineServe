@@ -49,6 +49,7 @@ function createWindow() {
     win.webContents.on('did-finish-load', () => {
         const dir = serverManager.getServerDir();
         if (dir) {
+            backupManager.setServerDir(dir);
             win?.webContents.send('server-dir-selected', dir);
         }
     });
