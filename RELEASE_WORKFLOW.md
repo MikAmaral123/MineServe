@@ -15,11 +15,26 @@ Run the build command to generate the release artifacts:
 npm run build
 ```
 
-This will create a `release/` folder containing:
+This will automatically **clean the `release/` folder** and create new artifacts:
 - `MineServe-Setup-X.Y.Z.exe` (The installer)
 - `latest.yml` (The update configuration file)
 
-## ☁️ 3. Push to GitHub
+## ☁️ 3. Release Notes Template
+When creating the release on GitHub, use this Markdown template to ensure it looks good in the app:
+
+```markdown
+### ✨ Features
+- **Feature Name:** Description of what's new.
+
+### 🎨 Visual & UX
+- **Improvements:** Visual changes or UX enhancements.
+
+### 🐛 Bug Fixes
+- Fixed [issue].
+- Resolved [bug].
+```
+
+## ☁️ 4. Push to GitHub
 Commit your code changes and the new version number:
 
 ```bash
@@ -28,7 +43,7 @@ git commit -m "Bump version to X.Y.Z"
 git push origin main
 ```
 
-## 🏷️ 4. Create GitHub Release (CRITICAL)
+## 🏷️ 5. Create GitHub Release (CRITICAL)
 This is the most important step for the auto-updater.
 
 1.  Go to: **[https://github.com/MikAmaral123/MineServe/releases/new](https://github.com/MikAmaral123/MineServe/releases/new)**
@@ -42,7 +57,7 @@ This is the most important step for the auto-updater.
     - *⚠️ IMPORTANT: Ensure `latest.yml` is the one just generated. It contains the SHA512 hash of the EXE via `electron-builder`.*
 6.  Click **Publish release**.
 
-## ✅ 5. Verification
+## ✅ 6. Verification
 - Open an installed version of MineServe (previous version).
 - Go to the **Updates** tab.
 - It should fail to check (if in dev mode) or successfully detect the new version (if installed as production).
