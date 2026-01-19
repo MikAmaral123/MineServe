@@ -8,6 +8,7 @@ import ServerConfig from './components/ServerConfig';
 import WelcomeWizard from './components/WelcomeWizard';
 import Settings from './components/Settings';
 import Updates from './components/Updates';
+import Addons from './components/Addons';
 import Players from './components/Players';
 import { useTranslation } from 'react-i18next';
 
@@ -182,7 +183,7 @@ function App() {
                         {/* Content Area */}
                         <div className="flex-1 min-h-0">
                             {activeTab === 'dashboard' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full grid-rows-[auto_1fr]">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full grid-rows-[auto_minmax(0,1fr)]">
                                     <StatusCard
                                         title={t('status')}
                                         value={t(serverStatus) || serverStatus.toUpperCase()}
@@ -206,7 +207,7 @@ function App() {
                                         bg="bg-amber-400/10"
                                     />
 
-                                    <div className="col-span-1 lg:col-span-3 glass-panel rounded-2xl p-6 flex flex-col justify-between overflow-hidden">
+                                    <div className="col-span-1 lg:col-span-3 glass-panel rounded-2xl p-6 flex flex-col min-h-0 overflow-hidden">
                                         <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
                                             <Terminal size={20} className="text-purple-400" /> {t('console')}
                                         </h3>
@@ -255,6 +256,7 @@ function App() {
                             )}
 
                             {activeTab === 'players' && <Players />}
+                            {activeTab === 'addons' && <Addons />}
                             {activeTab === 'server' && <ServerConfig />}
                             {activeTab === 'settings' && (
                                 <Settings

@@ -47,7 +47,14 @@ const resources = {
             "update_available": "Update available",
             "downloading": "Downloading...",
             "restart_to_update": "Restart to Update",
-            "dev_mode": "Development Mode"
+            "dev_mode": "Development Mode",
+            "addons": "Add-ons",
+            "search_addons_placeholder": "Search plugins (e.g. WorldEdit...)",
+            "searching": "Searching...",
+            "no_addons_found": "No add-ons found for this query.",
+            "install": "Install",
+            "installing": "Installing...",
+            "installed": "Installed"
         }
     },
     fr: {
@@ -94,7 +101,14 @@ const resources = {
             "update_available": "Mise à jour disponible",
             "downloading": "Téléchargement...",
             "restart_to_update": "Redémarrer pour mettre à jour",
-            "dev_mode": "Mode Développement"
+            "dev_mode": "Mode Développement",
+            "addons": "Add-ons",
+            "search_addons_placeholder": "Rechercher des plugins (ex: WorldEdit...)",
+            "searching": "Recherche en cours...",
+            "no_addons_found": "Aucun add-on trouvé.",
+            "install": "Installer",
+            "installing": "Installation...",
+            "installed": "Installé"
         }
     }
 };

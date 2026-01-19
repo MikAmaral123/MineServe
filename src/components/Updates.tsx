@@ -161,8 +161,8 @@ const Updates = () => {
                                             ? info.releaseNotes.map((n: any) => n.note).join('\n')
                                             : 'No release notes available.');
 
-                                    // Simple heuristic: if it contains HTML tags, render as HTML
-                                    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(notes);
+                                    // Robust heuristic: check if it looks like HTML (starts with < or contains standard tags)
+                                    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(notes) || notes.includes('<h') || notes.includes('<ul') || notes.includes('<p');
 
                                     if (hasHtmlTags) {
                                         return <div dangerouslySetInnerHTML={{ __html: notes }} />;

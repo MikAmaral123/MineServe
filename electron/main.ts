@@ -3,6 +3,7 @@ import path from 'path'
 import { ServerManager } from './server-manager'
 import { SetupManager } from './setup-manager'
 import { BackupManager } from './backup-manager'
+import { ModrinthClient } from './modrinth-client'
 import fs from 'fs'
 import { autoUpdater } from 'electron-updater'
 
@@ -17,6 +18,7 @@ let win: BrowserWindow | null
 const serverManager = new ServerManager()
 const setupManager = new SetupManager()
 const backupManager = new BackupManager()
+const modrinthClient = new ModrinthClient()
 
 const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL']
 
@@ -184,6 +186,34 @@ ipcMain.handle('reset-server', async () => {
         return false;
     }
 })
+
+
+// Addons / Plugins
+ipcMain.handle('search-addons', async (_, query) => {
+    try {
+        const results = await modrinthClient.searchPlugins(query);
+        return { success: true, results: results.hits };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.handle('install-addon', async (_, { slug }) => {
+    const dir = serverManager.getServerDir();
+    if (!dir) return { success: false, error: 'No server directory linked' };
+
+    try {
+        // Fetch latest version compatible
+        const version = await modrinthClient.getLatestVersion(slug);
+        if (!version) return { success: false, error: 'No compatible version found' };
+
+        const fileName = await modrinthClient.installPlugin(version, dir);
+        return { success: true, fileName };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+});
+
 // --- Auto Update Handlers ---
 ipcMain.handle('check-for-updates', async () => {
     if (!app.isPackaged) {

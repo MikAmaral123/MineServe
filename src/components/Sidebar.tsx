@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Server, Settings, Terminal, Activity, RefreshCw, Users } from 'lucide-react';
+import { Server, Settings, Terminal, Activity, RefreshCw, Users, Puzzle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 type SidebarProps = {
@@ -14,6 +14,7 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
         { id: 'dashboard', icon: Activity, label: t('dashboard') },
         { id: 'console', icon: Terminal, label: t('console') },
         { id: 'players', icon: Users, label: t('players') },
+        { id: 'addons', icon: Puzzle, label: t('addons') },
         { id: 'server', icon: Server, label: t('server_config') },
         { id: 'settings', icon: Settings, label: t('settings') },
         { id: 'updates', icon: RefreshCw, label: t('updates') },
