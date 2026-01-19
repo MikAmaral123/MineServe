@@ -19,11 +19,15 @@ This will automatically **clean the `release/` folder** and create new artifacts
 - `MineServe-Setup-X.Y.Z.exe` (The installer)
 - `latest.yml` (The update configuration file)
 
-## ☁️ 3. Release Notes Template
-When creating the release on GitHub, use this Markdown template to ensure it looks good in the app:
+## 📝 3. Generate Release Info
+**IMPORTANT:** The AI Assistant MUST provide the user with the following details ready to copy-paste:
 
+1.  **Release Title:** `MineServe vX.Y.Z - [Short Feature Summary]`
+2.  **Release Description:** A formatted Markdown block using the template below.
+
+**Template:**
 ```markdown
-### ✨ Features
+### ✨ New Features
 - **Feature Name:** Description of what's new.
 
 ### 🎨 Visual & UX
@@ -31,7 +35,6 @@ When creating the release on GitHub, use this Markdown template to ensure it loo
 
 ### 🐛 Bug Fixes
 - Fixed [issue].
-- Resolved [bug].
 ```
 
 ## ☁️ 4. Push to GitHub

@@ -153,15 +153,24 @@ const Updates = () => {
                         </div>
 
                         <div className="p-6 bg-black/40 rounded-xl text-left border border-white/5 max-h-[60vh] overflow-y-auto custom-scrollbar">
-                            <article className="prose prose-invert prose-sm max-w-none prose-headings:text-cyan-400 prose-a:text-blue-400">
-                                <ReactMarkdown>
-                                    {typeof info?.releaseNotes === 'string'
+                            <div className="prose prose-invert prose-sm max-w-none prose-headings:text-cyan-400 prose-a:text-blue-400 prose-strong:text-white prose-ul:list-disc prose-ul:pl-4">
+                                {(() => {
+                                    const notes = typeof info?.releaseNotes === 'string'
                                         ? info.releaseNotes
                                         : (Array.isArray(info?.releaseNotes)
                                             ? info.releaseNotes.map((n: any) => n.note).join('\n')
-                                            : 'No release notes available.')}
-                                </ReactMarkdown>
-                            </article>
+                                            : 'No release notes available.');
+
+                                    // Simple heuristic: if it contains HTML tags, render as HTML
+                                    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(notes);
+
+                                    if (hasHtmlTags) {
+                                        return <div dangerouslySetInnerHTML={{ __html: notes }} />;
+                                    }
+
+                                    return <ReactMarkdown>{notes}</ReactMarkdown>;
+                                })()}
+                            </div>
                         </div>
 
                         <button
