@@ -209,11 +209,28 @@ ipcMain.handle('install-addon', async (_, { slug }) => {
     if (!dir) return { success: false, error: 'No server directory linked' };
 
     try {
-        // Fetch latest version compatible
-        const version = await modrinthClient.getLatestVersion(slug);
+        // Get server details to determine correct loaders
+        const details = serverManager.getServerDetails();
+
+        // Map server type to Modrinth loaders
+        let loaders: string[] = ['paper', 'spigot', 'bukkit']; // default for plugins
+        if (details?.type === 'fabric') {
+            loaders = ['fabric'];
+        } else if (details?.type === 'forge') {
+            loaders = ['forge'];
+        } else if (details?.type === 'quilt') {
+            loaders = ['quilt'];
+        }
+
+        // Get game version if available
+        const gameVersions = details?.version ? [details.version] : undefined;
+
+        // Fetch latest version compatible with this server
+        const version = await modrinthClient.getLatestVersion(slug, loaders, gameVersions);
         if (!version) return { success: false, error: 'No compatible version found' };
 
-        const fileName = await modrinthClient.installPlugin(version, dir);
+        // Install to correct folder (mods for fabric, plugins for paper/spigot)
+        const fileName = await modrinthClient.installPlugin(version, dir, details?.type);
         return { success: true, fileName };
     } catch (e: any) {
         return { success: false, error: e.message };

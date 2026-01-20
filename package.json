@@ -1,6 +1,6 @@
 {
   "name": "mineserve",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "Premium Minecraft Server Manager",
   "main": "dist/electron/main.js",
   "scripts": {

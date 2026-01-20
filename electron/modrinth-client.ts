@@ -81,7 +81,7 @@ export class ModrinthClient {
         }
     }
 
-    async installPlugin(versionData: any, serverDir: string) {
+    async installPlugin(versionData: any, serverDir: string, serverType?: string) {
         if (!versionData || !versionData.files || versionData.files.length === 0) {
             throw new Error('No files found for this version');
         }
@@ -89,13 +89,16 @@ export class ModrinthClient {
         const primaryFile = versionData.files.find((f: any) => f.primary) || versionData.files[0];
         const downloadUrl = primaryFile.url;
         const fileName = primaryFile.filename;
-        const pluginsDir = path.join(serverDir, 'plugins');
 
-        if (!fs.existsSync(pluginsDir)) {
-            fs.mkdirSync(pluginsDir, { recursive: true });
+        // Use 'mods' folder for fabric/forge/quilt, 'plugins' for paper/spigot/bukkit
+        const folderName = ['fabric', 'forge', 'quilt'].includes(serverType || '') ? 'mods' : 'plugins';
+        const targetDir = path.join(serverDir, folderName);
+
+        if (!fs.existsSync(targetDir)) {
+            fs.mkdirSync(targetDir, { recursive: true });
         }
 
-        const destPath = path.join(pluginsDir, fileName);
+        const destPath = path.join(targetDir, fileName);
 
         // check if exists
         if (fs.existsSync(destPath)) {
