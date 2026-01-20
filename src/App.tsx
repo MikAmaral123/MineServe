@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import TitleBar from './components/TitleBar';
 import Sidebar from './components/Sidebar';
-import { Play, Square, Activity, Users, FolderOpen, Terminal } from 'lucide-react';
+import { Play, Square, Activity, Users, FolderOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from './lib/utils';
 import ServerConfig from './components/ServerConfig';
@@ -10,6 +10,7 @@ import Settings from './components/Settings';
 import Updates from './components/Updates';
 import Addons from './components/Addons';
 import Players from './components/Players';
+import DashboardConsole from './components/DashboardConsole';
 import { useTranslation } from 'react-i18next';
 
 // Electron IPC
@@ -29,7 +30,6 @@ function App() {
     const [serverDir, setServerDir] = useState<string>('');
     const [maxPlayers, setMaxPlayers] = useState<string>('-');
     const [currentPlayers, setCurrentPlayers] = useState<number>(0);
-    const consoleEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         ipcRenderer.invoke('get-saved-dir').then((dir: any) => {
@@ -72,9 +72,8 @@ function App() {
         }
     };
 
-    useEffect(() => {
-        consoleEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [logs]);
+    // NOTE: Auto-scroll is now handled inside DashboardConsole component
+    // Do NOT use scrollIntoView here as it scrolls the entire page
 
     const handleSelectDir = () => ipcRenderer.send('select-server-dir');
     const handleStart = () => ipcRenderer.send('start-server');
@@ -134,7 +133,7 @@ function App() {
                         animate="visible"
                         exit="exit"
                         variants={contentVariants}
-                        className="relative z-10 max-w-7xl mx-auto w-full flex-1 flex flex-col gap-6"
+                        className="relative z-10 max-w-7xl mx-auto w-full flex-1 min-h-0 overflow-hidden flex flex-col gap-6"
                     >
                         {/* Header Section */}
                         <header className="flex justify-between items-end shrink-0 mb-2">
@@ -181,48 +180,37 @@ function App() {
                         </header>
 
                         {/* Content Area */}
-                        <div className="flex-1 min-h-0">
+                        <div className="flex-1 min-h-0 overflow-hidden">
                             {activeTab === 'dashboard' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 h-full max-h-full grid-rows-[auto_1fr] overflow-hidden">
-                                    <StatusCard
-                                        title={t('status')}
-                                        value={t(serverStatus) || serverStatus.toUpperCase()}
-                                        icon={Activity}
-                                        color={serverStatus === 'online' ? 'text-green-400' : 'text-gray-400'}
-                                        bg={serverStatus === 'online' ? 'bg-green-400/10' : 'bg-white/5'}
-                                    />
-                                    <StatusCard
-                                        title={t('folder')}
-                                        value={serverDir ? t('linked') : t('not_set')}
-                                        icon={FolderOpen}
-                                        color="text-blue-400"
-                                        bg="bg-blue-400/10"
-                                    />
-                                    <StatusCard
-                                        title={t('players')}
-                                        value={currentPlayers.toString()}
-                                        subValue={`/ ${maxPlayers}`}
-                                        icon={Users}
-                                        color="text-amber-400"
-                                        bg="bg-amber-400/10"
-                                    />
+                                <div className="flex flex-col gap-6 h-full p-1 overflow-y-hidden">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 shrink-0">
+                                        <StatusCard
+                                            title={t('status')}
+                                            value={t(serverStatus) || serverStatus.toUpperCase()}
+                                            icon={Activity}
+                                            color={serverStatus === 'online' ? 'text-green-400' : 'text-gray-400'}
+                                            bg={serverStatus === 'online' ? 'bg-green-400/10' : 'bg-white/5'}
+                                        />
+                                        <StatusCard
+                                            title={t('folder')}
+                                            value={serverDir ? t('linked') : t('not_set')}
+                                            icon={FolderOpen}
+                                            color="text-blue-400"
+                                            bg="bg-blue-400/10"
+                                        />
+                                        <StatusCard
+                                            title={t('players')}
+                                            value={currentPlayers.toString()}
+                                            subValue={`/ ${maxPlayers}`}
+                                            icon={Users}
+                                            color="text-amber-400"
+                                            bg="bg-amber-400/10"
+                                        />
+                                    </div>
 
-                                    <div className="col-span-1 lg:col-span-3 glass-panel rounded-2xl p-6 flex flex-col min-h-0 overflow-hidden">
-                                        <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
-                                            <Terminal size={20} className="text-purple-400" /> {t('console')}
-                                        </h3>
-                                        <div className="flex-1 font-mono text-xs text-gray-300 space-y-1 overflow-y-auto custom-scrollbar p-4 bg-black/40 rounded-xl border border-white/5 shadow-inner">
-                                            {logs.map((log, i) => (
-                                                <p key={i} className="break-words leading-relaxed">
-                                                    <span className='text-gray-500 mr-3 inline-block w-[70px]'>[{log.timestamp}]</span>
-                                                    <span className={log.type === 'error' ? 'text-red-400' : 'text-gray-200'}>
-                                                        {log.message}
-                                                    </span>
-                                                </p>
-                                            ))}
-                                            <div ref={consoleEndRef} />
-                                            {logs.length === 0 && <p className="text-gray-500 italic flex items-center justify-center h-full">Waiting for server logs...</p>}
-                                        </div>
+                                    {/* Console Wrapper - Takes remaining space */}
+                                    <div className="flex-1 min-h-0">
+                                        <DashboardConsole logs={logs} />
                                     </div>
                                 </div>
                             )}
@@ -238,7 +226,6 @@ function App() {
                                                 </span>
                                             </p>
                                         ))}
-                                        <div ref={consoleEndRef} />
                                     </div>
                                     <form onSubmit={handleCommand} className="flex gap-3">
                                         <input
