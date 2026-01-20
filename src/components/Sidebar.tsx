@@ -1,13 +1,14 @@
 import { cn } from '@/lib/utils';
-import { Server, Settings, Terminal, Activity, RefreshCw, Users, Puzzle } from 'lucide-react';
+import { Server, Settings, Terminal, Activity, RefreshCw, Users, Puzzle, Heart } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 type SidebarProps = {
     activeTab: string;
     setActiveTab: (tab: string) => void;
+    updateAvailable: boolean;
 };
 
-const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
+const Sidebar = ({ activeTab, setActiveTab, updateAvailable }: SidebarProps) => {
     const { t } = useTranslation();
 
     const menuItems = [
@@ -37,10 +38,15 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
                         {activeTab === item.id && (
                             <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3/5 bg-purple-500 rounded-r-full shadow-[0_0_10px_#a855f7]" />
                         )}
-                        <item.icon size={20} className={cn(
-                            "transition-transform duration-300",
-                            activeTab === item.id ? "scale-110 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : "group-hover:scale-105"
-                        )} />
+                        <div className="relative">
+                            <item.icon size={20} className={cn(
+                                "transition-transform duration-300",
+                                activeTab === item.id ? "scale-110 text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : "group-hover:scale-105"
+                            )} />
+                            {item.id === 'updates' && updateAvailable && (
+                                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#15151a] animate-pulse" />
+                            )}
+                        </div>
                         <span className="font-medium text-sm tracking-wide">{item.label}</span>
 
                         {/* Hover glow */}
@@ -49,7 +55,17 @@ const Sidebar = ({ activeTab, setActiveTab }: SidebarProps) => {
                 ))}
             </div>
 
-            <div className="mt-auto pt-4 border-t border-white/5">
+            <div className="mt-auto pt-4 border-t border-white/5 space-y-4">
+                <a
+                    href="https://buymeacoffee.com/mikamaral"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[#FFDD00]/10 hover:bg-[#FFDD00]/20 text-[#FFDD00] transition-all group border border-[#FFDD00]/10"
+                >
+                    <Heart size={20} className="fill-current group-hover:scale-110 transition-transform" />
+                    <span className="font-bold text-sm">{t('support_me')}</span>
+                </a>
+
                 <div className="p-4 rounded-xl border border-white/5 bg-black/20 backdrop-blur-md">
                     <div className="flex items-center gap-3">
                         <div className="relative">

@@ -39,11 +39,11 @@ body {
     width: 100vw;
     height: 100vh;
     z-index: -1;
-    background: radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.15) 0%, transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.10) 0%, transparent 25%),
-        radial-gradient(circle at 50% 80%, rgba(236, 72, 153, 0.10) 0%, transparent 25%);
-    filter: blur(40px);
-    animation: pulse-liquid 10s ease-in-out infinite alternate;
+    background: linear-gradient(rgba(5, 5, 16, 0.6), rgba(5, 5, 16, 0.8)), url('/background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* animation: pulse-liquid 10s ease-in-out infinite alternate; */
 }
 
 @keyframes pulse-liquid {

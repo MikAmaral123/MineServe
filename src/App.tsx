@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import TitleBar from './components/TitleBar';
 import Sidebar from './components/Sidebar';
-import { Play, Square, Activity, Users, FolderOpen } from 'lucide-react';
+import { Play, Square, Activity, Users, FolderOpen, RotateCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from './lib/utils';
 import ServerConfig from './components/ServerConfig';
@@ -30,6 +30,8 @@ function App() {
     const [serverDir, setServerDir] = useState<string>('');
     const [maxPlayers, setMaxPlayers] = useState<string>('-');
     const [currentPlayers, setCurrentPlayers] = useState<number>(0);
+    const [players, setPlayers] = useState<string[]>([]);
+    const [updateAvailable, setUpdateAvailable] = useState<boolean>(false);
     const consoleRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -40,6 +42,10 @@ function App() {
             }
         });
 
+        // Initial Status Fetch
+        ipcRenderer.send('get-players');
+        ipcRenderer.invoke('check-for-updates'); // Proactive check
+
         ipcRenderer.on('server-status', (_: any, status: any) => setServerStatus(status));
         ipcRenderer.on('server-dir-selected', (_: any, dir: any) => {
             setServerDir(dir);
@@ -47,6 +53,13 @@ function App() {
         });
 
         ipcRenderer.on('player-count-update', (_: any, count: number) => setCurrentPlayers(count));
+        ipcRenderer.on('player-list-update', (_: any, list: string[]) => setPlayers(list));
+
+        ipcRenderer.on('update-status', (_: any, data: any) => {
+            if (data.status === 'available' || data.status === 'downloaded') {
+                setUpdateAvailable(true);
+            }
+        });
 
         ipcRenderer.on('console-log', (_: any, log: LogEntry) => {
             setLogs(prev => [...prev.slice(-100), log]);
@@ -66,7 +79,9 @@ function App() {
             ipcRenderer.removeAllListeners('console-log');
             ipcRenderer.removeAllListeners('server-dir-selected');
             ipcRenderer.removeAllListeners('player-count-update');
+            ipcRenderer.removeAllListeners('player-list-update');
             ipcRenderer.removeAllListeners('properties-updated');
+            ipcRenderer.removeAllListeners('update-status');
         };
     }, []);
 
@@ -91,6 +106,7 @@ function App() {
     const handleSelectDir = () => ipcRenderer.send('select-server-dir');
     const handleStart = () => ipcRenderer.send('start-server');
     const handleStop = () => ipcRenderer.send('stop-server');
+    const handleRestart = () => ipcRenderer.send('restart-server');
     const handleCommand = (e: React.FormEvent) => {
         e.preventDefault();
         const input = (e.target as any).command.value;
@@ -103,7 +119,7 @@ function App() {
     const contentVariants = {
         hidden: { opacity: 0, scale: 0.98, y: 10 },
         visible: { opacity: 1, scale: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
-        exit: { opacity: 0, scale: 0.98, y: -10, transition: { duration: 0.3 } }
+        exit: { opacity: 0, scale: 1, y: 0, transition: { duration: 0.3 } }
     };
 
     if (!serverDir) {
@@ -135,7 +151,7 @@ function App() {
                 {/* Sidebar Container */}
                 <div className="w-64 p-4 pr-0 flex flex-col">
                     <div className="glass-panel rounded-2xl h-full flex flex-col overflow-hidden">
-                        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+                        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} updateAvailable={updateAvailable} />
                     </div>
                 </div>
 
@@ -165,29 +181,52 @@ function App() {
                                         <FolderOpen size={18} /> {t('select_server')}
                                     </button>
                                 )}
-                                {serverDir && serverStatus === 'offline' && (
-                                    <button
-                                        onClick={handleStart}
-                                        className="px-6 py-2.5 bg-green-500/80 hover:bg-green-500/90 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)] rounded-xl transition-all font-bold flex items-center gap-2 group backdrop-blur-md"
-                                    >
-                                        <Play size={18} className="fill-current group-hover:scale-110 transition-transform" />
-                                        {t('start_server')}
-                                    </button>
-                                )}
-                                {serverStatus !== 'offline' && (
-                                    <button
-                                        onClick={handleStop}
-                                        className={cn(
-                                            "px-6 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 group backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.4)]",
-                                            serverStatus === 'stopping'
-                                                ? "bg-red-500/50 cursor-wait text-white/50"
-                                                : "bg-red-500/80 hover:bg-red-500/90 text-white"
+                                {serverDir && (
+                                    <>
+                                        {serverStatus === 'offline' && (
+                                            <button
+                                                onClick={handleStart}
+                                                className="px-6 py-2.5 bg-green-500/80 hover:bg-green-500/90 text-white shadow-[0_0_20px_rgba(34,197,94,0.4)] rounded-xl transition-all font-bold flex items-center gap-2 group backdrop-blur-md"
+                                            >
+                                                <Play size={18} className="fill-current group-hover:scale-110 transition-transform" />
+                                                {t('start_server')}
+                                            </button>
                                         )}
-                                        disabled={serverStatus === 'stopping'}
-                                    >
-                                        <Square size={18} className="fill-current group-hover:scale-110 transition-transform" />
-                                        {serverStatus === 'stopping' ? t('stopping') : t('stop_server')}
-                                    </button>
+
+                                        <button
+                                            onClick={handleRestart}
+                                            disabled={serverStatus === 'offline' || serverStatus === 'stopping'}
+                                            className={cn(
+                                                "px-6 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 group backdrop-blur-md",
+                                                (serverStatus === 'offline' || serverStatus === 'stopping')
+                                                    ? "bg-white/5 text-gray-500 cursor-not-allowed border border-white/5"
+                                                    : "bg-amber-500/80 hover:bg-amber-500/90 text-white shadow-[0_0_20px_rgba(245,158,11,0.4)]"
+                                            )}
+                                        >
+                                            <RotateCw size={18} className={cn(
+                                                "transition-transform duration-500",
+                                                serverStatus === 'stopping' && "animate-spin",
+                                                serverStatus !== 'stopping' && serverStatus !== 'offline' && "group-hover:rotate-180"
+                                            )} />
+                                            {t('restart') || 'Restart'}
+                                        </button>
+
+                                        {serverStatus !== 'offline' && (
+                                            <button
+                                                onClick={handleStop}
+                                                className={cn(
+                                                    "px-6 py-2.5 rounded-xl transition-all font-bold flex items-center gap-2 group backdrop-blur-md shadow-[0_0_20px_rgba(239,68,68,0.4)]",
+                                                    serverStatus === 'stopping'
+                                                        ? "bg-red-500/50 cursor-wait text-white/50"
+                                                        : "bg-red-500/80 hover:bg-red-500/90 text-white"
+                                                )}
+                                                disabled={serverStatus === 'stopping'}
+                                            >
+                                                <Square size={18} className="fill-current group-hover:scale-110 transition-transform" />
+                                                {serverStatus === 'stopping' ? t('stopping') : t('stop_server')}
+                                            </button>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         </header>
@@ -255,7 +294,7 @@ function App() {
                                 </div>
                             )}
 
-                            {activeTab === 'players' && <Players />}
+                            {activeTab === 'players' && <Players players={players} />}
                             {activeTab === 'addons' && <Addons />}
                             {activeTab === 'server' && <ServerConfig />}
                             {activeTab === 'settings' && (
@@ -277,6 +316,7 @@ function App() {
             </div>
         </div>
     );
+
 }
 
 const StatusCard = ({ title, value, subValue, icon: Icon, color, bg }: any) => (

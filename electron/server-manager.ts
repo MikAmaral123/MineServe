@@ -12,7 +12,13 @@ export class ServerManager {
     private propertiesPath: string = '';
     private players: Set<string> = new Set();
 
+    private isRestarting: boolean = false;
+
     constructor() { }
+
+    getPlayers() {
+        return Array.from(this.players);
+    }
 
     loadConfig(userDataPath: string) {
         this.configPath = path.join(userDataPath, 'config.json');
@@ -220,10 +226,29 @@ export class ServerManager {
         this.process.on('close', (code) => {
             this.log(`Server stopped with code ${code}`);
             this.process = null;
-            this.notifyStatus('offline');
+
+            if (this.isRestarting) {
+                this.isRestarting = false;
+                // Small delay to ensure resources are freed
+                setTimeout(() => this.start(), 1500);
+            } else {
+                this.notifyStatus('offline');
+            }
+
             this.players.clear();
             this.notifyPlayersUpdate();
         });
+    }
+
+    restart() {
+        if (this.process) {
+            this.log('Restarting server...');
+            this.notifyStatus('stopping');
+            this.isRestarting = true;
+            this.process.stdin?.write('stop\n');
+        } else {
+            this.start();
+        }
     }
 
     stop() {

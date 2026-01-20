@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, Ban, UserX, Shield, Users as UsersIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
@@ -7,10 +7,12 @@ import { useTranslation } from 'react-i18next';
 const { ipcRenderer } = window.require ? window.require('electron') : { ipcRenderer: { on: () => { }, send: () => { }, removeAllListeners: () => { } } };
 
 type Player = string; // Simpler for now, name only
+interface PlayersProps {
+    players: Player[];
+}
 
-const Players = () => {
+const Players = ({ players }: PlayersProps) => {
     const { t } = useTranslation();
-    const [players, setPlayers] = useState<Player[]>([]);
     const [search, setSearch] = useState('');
     const [selectedPlayer, setSelectedPlayer] = useState<string | null>(null);
     const [action, setAction] = useState<'kick' | 'ban' | null>(null);
@@ -18,20 +20,6 @@ const Players = () => {
     // Modal Inputs
     const [reason, setReason] = useState('');
     const [duration, setDuration] = useState('');
-
-    useEffect(() => {
-        ipcRenderer.on('player-list-update', (_: any, list: string[]) => {
-            setPlayers(list);
-        });
-
-        // Request initial list if needed? Or rely on updates. 
-        // Ideally main process sends update on connect/load, but we might miss it.
-        // For now, let's assume real-time updates work well.
-
-        return () => {
-            ipcRenderer.removeAllListeners('player-list-update');
-        };
-    }, []);
 
     const filteredPlayers = players.filter(p => p.toLowerCase().includes(search.toLowerCase()));
 

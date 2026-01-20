@@ -54,7 +54,8 @@ const resources = {
             "no_addons_found": "No add-ons found for this query.",
             "install": "Install",
             "installing": "Installing...",
-            "installed": "Installed"
+            "installed": "Installed",
+            "support_me": "Support Me"
         }
     },
     fr: {
@@ -108,7 +109,8 @@ const resources = {
             "no_addons_found": "Aucun add-on trouvé.",
             "install": "Installer",
             "installing": "Installation...",
-            "installed": "Installé"
+            "installed": "Installé",
+            "support_me": "Me Soutenir"
         }
     }
 };

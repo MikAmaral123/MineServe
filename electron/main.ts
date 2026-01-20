@@ -30,6 +30,7 @@ function createWindow() {
         minHeight: 600,
         backgroundColor: '#0f0f13',
         frame: false,
+        maximizable: false,
         titleBarStyle: 'hidden',
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -113,7 +114,11 @@ ipcMain.on('select-server-dir', async () => {
 
 ipcMain.on('start-server', () => serverManager.start())
 ipcMain.on('stop-server', () => serverManager.stop())
+ipcMain.on('restart-server', () => serverManager.restart())
 ipcMain.on('send-command', (_, cmd) => serverManager.sendCommand(cmd))
+ipcMain.on('get-players', () => {
+    win?.webContents.send('player-list-update', serverManager.getPlayers())
+})
 ipcMain.on('kick-player', (_, { player, reason }) => serverManager.kickPlayer(player, reason))
 ipcMain.on('ban-player', (_, { player, reason, duration }) => serverManager.banPlayer(player, reason, duration))
 ipcMain.on('op-player', (_, player) => serverManager.opPlayer(player))
