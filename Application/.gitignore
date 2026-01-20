@@ -27,3 +27,4 @@ backups/
 mincraft_server/
 my-server/
 *.log
+*.md
