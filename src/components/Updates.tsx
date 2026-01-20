@@ -120,15 +120,42 @@ const Updates = () => {
                         key="uptodate"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="space-y-6"
+                        className="space-y-6 w-full max-w-2xl"
                     >
-                        <div className="w-24 h-24 bg-green-500/20 rounded-full flex items-center justify-center mx-auto text-green-500 ring-1 ring-green-500/40">
-                            <Check size={48} />
+                        <div className="flex items-center justify-center gap-4">
+                            <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center text-green-500 ring-1 ring-green-500/40">
+                                <Check size={40} />
+                            </div>
+                            <div className="text-left">
+                                <h3 className="text-2xl font-bold text-white">You're up to date!</h3>
+                                <p className="text-green-400 font-mono text-lg">v{info?.version || 'Unknown'}</p>
+                            </div>
                         </div>
-                        <div>
-                            <h3 className="text-2xl font-bold text-white">You're up to date!</h3>
-                            <p className="text-gray-400 mt-2">Current Version: {info?.version || 'Unknown'}</p>
-                        </div>
+
+                        {/* Show current version release notes */}
+                        {info?.releaseNotes && (
+                            <div className="p-6 bg-black/40 rounded-xl text-left border border-white/5 max-h-[50vh] overflow-y-auto custom-scrollbar">
+                                <h4 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Current Version Release Notes</h4>
+                                <div className="prose prose-invert prose-sm max-w-none prose-headings:text-cyan-400 prose-a:text-blue-400 prose-strong:text-white prose-ul:list-disc prose-ul:pl-4">
+                                    {(() => {
+                                        const notes = typeof info?.releaseNotes === 'string'
+                                            ? info.releaseNotes
+                                            : (Array.isArray(info?.releaseNotes)
+                                                ? info.releaseNotes.map((n: any) => n.note).join('\n')
+                                                : 'No release notes available.');
+
+                                        const hasHtmlTags = /<[a-z][\s\S]*>/i.test(notes) || notes.includes('<h') || notes.includes('<ul') || notes.includes('<p');
+
+                                        if (hasHtmlTags) {
+                                            return <div dangerouslySetInnerHTML={{ __html: notes }} />;
+                                        }
+
+                                        return <ReactMarkdown>{notes}</ReactMarkdown>;
+                                    })()}
+                                </div>
+                            </div>
+                        )}
+
                         <button onClick={() => setStatus('idle')} className="px-6 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
                             Check Again
                         </button>

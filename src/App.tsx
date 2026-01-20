@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import TitleBar from './components/TitleBar';
 import Sidebar from './components/Sidebar';
 import { Play, Square, Activity, Users, FolderOpen } from 'lucide-react';
@@ -30,6 +30,7 @@ function App() {
     const [serverDir, setServerDir] = useState<string>('');
     const [maxPlayers, setMaxPlayers] = useState<string>('-');
     const [currentPlayers, setCurrentPlayers] = useState<number>(0);
+    const consoleRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         ipcRenderer.invoke('get-saved-dir').then((dir: any) => {
@@ -51,6 +52,13 @@ function App() {
             setLogs(prev => [...prev.slice(-100), log]);
         });
 
+        // Listen for property changes (e.g., when max-players is updated in ServerConfig)
+        ipcRenderer.on('properties-updated', (_: any, props: any) => {
+            if (props && props['max-players']) {
+                setMaxPlayers(props['max-players']);
+            }
+        });
+
         if (serverDir) fetchMaxPlayers();
 
         return () => {
@@ -58,6 +66,7 @@ function App() {
             ipcRenderer.removeAllListeners('console-log');
             ipcRenderer.removeAllListeners('server-dir-selected');
             ipcRenderer.removeAllListeners('player-count-update');
+            ipcRenderer.removeAllListeners('properties-updated');
         };
     }, []);
 
@@ -72,8 +81,12 @@ function App() {
         }
     };
 
-    // NOTE: Auto-scroll is now handled inside DashboardConsole component
-    // Do NOT use scrollIntoView here as it scrolls the entire page
+    // Auto-scroll for Console tab (not Dashboard - that's handled by DashboardConsole)
+    useEffect(() => {
+        if (activeTab === 'console' && consoleRef.current) {
+            consoleRef.current.scrollTop = consoleRef.current.scrollHeight;
+        }
+    }, [logs, activeTab]);
 
     const handleSelectDir = () => ipcRenderer.send('select-server-dir');
     const handleStart = () => ipcRenderer.send('start-server');
@@ -217,7 +230,7 @@ function App() {
 
                             {activeTab === 'console' && (
                                 <div className="flex flex-col h-full overflow-hidden glass-panel rounded-2xl p-6">
-                                    <div className="flex-1 font-mono text-xs text-gray-300 space-y-1 overflow-y-auto custom-scrollbar p-4 bg-black/40 rounded-xl border border-white/5 shadow-inner mb-4">
+                                    <div ref={consoleRef} className="flex-1 font-mono text-xs text-gray-300 space-y-1 overflow-y-auto custom-scrollbar p-4 bg-black/40 rounded-xl border border-white/5 shadow-inner mb-4">
                                         {logs.map((log, i) => (
                                             <p key={i} className="break-words leading-relaxed">
                                                 <span className='text-gray-500 mr-3'>[{log.timestamp}]</span>

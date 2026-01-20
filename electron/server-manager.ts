@@ -109,6 +109,11 @@ export class ServerManager {
 
         fs.writeFileSync(this.propertiesPath, content);
         this.log('Server properties saved');
+
+        // Notify frontend that properties have been updated
+        if (this.window) {
+            this.window.webContents.send('properties-updated', props);
+        }
     }
 
     start() {
@@ -143,26 +148,69 @@ export class ServerManager {
         });
 
         this.process.stdout?.on('data', (data) => {
-            const line = data.toString();
-            this.log(line);
+            const chunk = data.toString();
+            // Process each line individually to ensure regex matches correctly
+            const lines = chunk.split('\n');
 
-            // Player detection logic via regex for standard formats
-            // Format: [HH:mm:ss] [Server thread/INFO]: <Name> joined the game
-            const joinMatch = line.match(/: (.+) joined the game/);
-            if (joinMatch) {
-                this.players.add(joinMatch[1]);
-                this.notifyPlayersUpdate();
-            }
+            lines.forEach((line: string) => {
+                if (!line.trim()) return; // Skip empty lines
 
-            const leaveMatch = line.match(/: (.+) left the game/);
-            if (leaveMatch) {
-                this.players.delete(leaveMatch[1]);
-                this.notifyPlayersUpdate();
-            }
+                this.log(line);
 
-            if (line.includes('Done') && line.includes('!')) {
-                this.notifyStatus('online');
-            }
+                // Player detection - multiple formats for different server types
+                // Vanilla/Paper: "[HH:MM:SS] [Server thread/INFO]: PlayerName joined the game"
+                // Fabric: "[HH:MM:SS] [Server thread/INFO] (Minecraft) PlayerName joined the game"
+                // Also handle: "PlayerName[/IP:PORT] logged in with entity id"
+
+                // Join detection patterns
+                const joinPatterns = [
+                    /: (\w+) joined the game/,           // Vanilla/Paper
+                    /\] (\w+) joined the game/,           // Fabric variant
+                    /(\w+)\[\/[\d.:]+\] logged in/,       // "Player[/ip:port] logged in"
+                    /UUID of player (\w+) is/,            // UUID announcement (player connecting)
+                ];
+
+                let foundJoin = false;
+                for (const pattern of joinPatterns) {
+                    const match = line.match(pattern);
+                    if (match && match[1]) {
+                        const playerName = match[1];
+                        if (!this.players.has(playerName)) {
+                            this.players.add(playerName);
+                            this.notifyPlayersUpdate();
+                            // console.log(`[MineServe] Player joined: ${playerName}`);
+                        }
+                        foundJoin = true;
+                        break;
+                    }
+                }
+
+                if (!foundJoin) {
+                    // Leave detection patterns
+                    const leavePatterns = [
+                        /: (\w+) left the game/,              // Vanilla/Paper
+                        /\] (\w+) left the game/,             // Fabric variant
+                        /(\w+) lost connection:/,             // "Player lost connection: reason"
+                    ];
+
+                    for (const pattern of leavePatterns) {
+                        const match = line.match(pattern);
+                        if (match && match[1]) {
+                            const playerName = match[1];
+                            if (this.players.has(playerName)) {
+                                this.players.delete(playerName);
+                                this.notifyPlayersUpdate();
+                                // console.log(`[MineServe] Player left: ${playerName}`);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                if (line.includes('Done') && line.includes('!')) {
+                    this.notifyStatus('online');
+                }
+            });
         });
 
         this.process.stderr?.on('data', (data) => {

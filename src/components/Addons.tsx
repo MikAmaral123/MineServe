@@ -21,7 +21,15 @@ const Addons = () => {
     const [results, setResults] = useState<Addon[]>([]);
     const [loading, setLoading] = useState(false);
     const [installing, setInstalling] = useState<Record<string, boolean>>({});
-    const [installed, setInstalled] = useState<Record<string, boolean>>({});
+    // Load installed addons from localStorage to persist state between tab switches
+    const [installed, setInstalled] = useState<Record<string, boolean>>(() => {
+        const saved = localStorage.getItem('installed-addons');
+        return saved ? JSON.parse(saved) : {};
+    });
+
+    useEffect(() => {
+        localStorage.setItem('installed-addons', JSON.stringify(installed));
+    }, [installed]);
     const [error, setError] = useState<string | null>(null);
 
     const [serverInfo, setServerInfo] = useState<{ type: string, version: string | null } | null>(null);
