@@ -8,7 +8,7 @@ type SidebarProps = {
     updateAvailable: boolean;
 };
 
-const Sidebar = ({ activeTab, setActiveTab, updateAvailable }: SidebarProps) => {
+const Sidebar = ({ activeTab, setActiveTab, updateAvailable, appVersion }: SidebarProps & { appVersion: string }) => {
     const { t } = useTranslation();
 
     const menuItems = [
@@ -69,12 +69,20 @@ const Sidebar = ({ activeTab, setActiveTab, updateAvailable }: SidebarProps) => 
                 <div className="p-4 rounded-xl border border-white/5 bg-black/20 backdrop-blur-md">
                     <div className="flex items-center gap-3">
                         <div className="relative">
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_#22c55e] animate-pulse" />
-                            <div className="absolute inset-0 w-2.5 h-2.5 rounded-full bg-green-500 opacity-50 blur-sm" />
+                            <div className={cn(
+                                "w-2.5 h-2.5 rounded-full shadow-[0_0_10px] animate-pulse",
+                                updateAvailable ? "bg-orange-500 shadow-orange-500" : "bg-green-500 shadow-green-500"
+                            )} />
+                            <div className={cn(
+                                "absolute inset-0 w-2.5 h-2.5 rounded-full opacity-50 blur-sm",
+                                updateAvailable ? "bg-orange-500" : "bg-green-500"
+                            )} />
                         </div>
-                        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">System Online</span>
+                        <span className="text-xs font-bold text-gray-300 uppercase tracking-wider">
+                            {updateAvailable ? t('system_outdated') : t('system_online')}
+                        </span>
                     </div>
-                    <p className="text-[10px] text-gray-500 mt-2 font-mono">MineServe v1.1.0</p>
+                    <p className="text-[10px] text-gray-500 mt-2 font-mono">MineServe v{appVersion}</p>
                 </div>
             </div>
         </div>

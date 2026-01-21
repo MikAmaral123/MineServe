@@ -12,6 +12,7 @@ import Addons from './components/Addons';
 import Players from './components/Players';
 import DashboardConsole from './components/DashboardConsole';
 import { useTranslation } from 'react-i18next';
+import pkg from '../package.json';
 
 // Electron IPC
 const { ipcRenderer } = window.require ? window.require('electron') : { ipcRenderer: { on: () => { }, send: () => { }, invoke: async () => ({}) } };
@@ -151,7 +152,7 @@ function App() {
                 {/* Sidebar Container */}
                 <div className="w-64 p-4 pr-0 flex flex-col">
                     <div className="glass-panel rounded-2xl h-full flex flex-col overflow-hidden">
-                        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} updateAvailable={updateAvailable} />
+                        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} updateAvailable={updateAvailable} appVersion={pkg.version} />
                     </div>
                 </div>
 
@@ -301,6 +302,7 @@ function App() {
                                 <div className="h-full overflow-y-auto custom-scrollbar pr-2">
                                     <Settings
                                         version={(window as any).process?.version}
+                                        appVersion={pkg.version}
                                         onReset={() => {
                                             setServerDir('');
                                             setServerStatus('offline');

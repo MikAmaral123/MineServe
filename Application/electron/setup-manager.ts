@@ -11,7 +11,7 @@ export class SetupManager {
         this.window = win;
     }
 
-    async downloadServer(type: string, version: string, installPath: string) {
+    async downloadServer(type: string, version: string, installPath: string, isBedrock: boolean = false) {
         this.log(`Starting download for ${type} version ${version}...`);
 
         let downloadUrl = '';
@@ -37,6 +37,12 @@ export class SetupManager {
                 const latestBuild = builds.data.builds[builds.data.builds.length - 1];
                 fileName = `paper-${version}-${latestBuild}.jar`;
                 downloadUrl = `https://api.papermc.io/v2/projects/paper/versions/${version}/builds/${latestBuild}/downloads/${fileName}`;
+            } else if (type === 'purpur') {
+                this.log('Using Purpur for advanced features...');
+                const builds = await axios.get(`https://api.purpurmc.org/v2/purpur/${version}`);
+                const latestBuild = builds.data.builds.latest;
+                fileName = `purpur-${version}-${latestBuild}.jar`;
+                downloadUrl = `https://api.purpurmc.org/v2/purpur/${version}/${latestBuild}/download`;
             } else if (type === 'fabric') {
                 const loader = await axios.get(`https://meta.fabricmc.net/v2/versions/loader/${version}`);
                 if (loader.data.length === 0) throw new Error('Fabric version not found');
@@ -71,16 +77,41 @@ export class SetupManager {
             return new Promise((resolve, reject) => {
                 writer.on('finish', resolve);
                 writer.on('error', reject);
-            }).then(() => {
+            }).then(async () => {
                 this.log('Download complete!');
                 // Auto accept EULA for convenience?
                 fs.writeFileSync(path.join(installPath, 'eula.txt'), 'eula=true');
+
+                // Install Geyser if Bedrock support is requested
+                if (isBedrock) {
+                    this.log('Installing Bedrock support (GeyserMC)...');
+                    const pluginsDir = path.join(installPath, 'plugins');
+                    if (!fs.existsSync(pluginsDir)) fs.mkdirSync(pluginsDir);
+
+                    // Download latest Geyser-Spigot
+                    const geyserUrl = 'https://download.geysermc.org/v2/projects/geyser/versions/latest/builds/latest/downloads/spigot';
+
+                    try {
+                        const geyserWriter = fs.createWriteStream(path.join(pluginsDir, 'Geyser-Spigot.jar'));
+                        const res = await axios({ url: geyserUrl, method: 'GET', responseType: 'stream' });
+                        res.data.pipe(geyserWriter);
+
+                        await new Promise((resolve, reject) => {
+                            geyserWriter.on('finish', resolve);
+                            geyserWriter.on('error', reject);
+                        });
+                        this.log('GeyserMC installed successfully!');
+                    } catch (e: any) {
+                        this.log(`Failed to install GeyserMC: ${e.message}`, 'error');
+                    }
+                }
 
                 // Save metadata
                 try {
                     fs.writeFileSync(path.join(installPath, 'mineserve.json'), JSON.stringify({
                         type,
                         version,
+                        bedrock: isBedrock,
                         installedAt: new Date().toISOString()
                     }, null, 2));
                 } catch (e) {

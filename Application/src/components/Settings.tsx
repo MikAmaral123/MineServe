@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 // Mock IPC
 const { ipcRenderer } = window.require ? window.require('electron') : { ipcRenderer: { invoke: async () => { }, send: () => { } } };
 
-const Settings = ({ version, onReset }: { version: string, onReset: () => void }) => {
+const Settings = ({ version, onReset, appVersion }: { version: string, onReset: () => void, appVersion: string }) => {
     const { t, i18n } = useTranslation();
     const [backupConfig, setBackupConfig] = useState({
         enabled: false,
@@ -35,7 +35,7 @@ const Settings = ({ version, onReset }: { version: string, onReset: () => void }
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">
             {/* General Settings */}
-            <div className="bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6">
+            <div className="bg-card/40 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
                     <Globe size={20} className="text-purple-400" />
                     {t('settings')}
@@ -57,13 +57,19 @@ const Settings = ({ version, onReset }: { version: string, onReset: () => void }
                             >
                                 Français
                             </button>
+                            <button
+                                onClick={() => changeLanguage('es')}
+                                className={`px-3 py-1 rounded-lg text-sm transition-colors ${i18n.language === 'es' ? 'bg-primary text-white' : 'bg-white/5 text-gray-400 hover:bg-white/10'}`}
+                            >
+                                Español
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
 
             {/* Backup Settings */}
-            <div className="bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6">
+            <div className="bg-card/40 backdrop-blur-sm border border-white/5 rounded-2xl p-6">
                 <h3 className="text-lg font-semibold text-gray-200 mb-4 flex items-center gap-2">
                     <Archive size={20} className="text-blue-400" />
                     Backups
@@ -147,7 +153,7 @@ const Settings = ({ version, onReset }: { version: string, onReset: () => void }
             </div>
 
             <div className="col-span-1 md:col-span-2 text-center text-gray-500 text-sm mt-4">
-                MineServe v1.0.3 • Running on Java {version}
+                MineServe v{appVersion} • Running on Java {version}
             </div>
         </div>
     );

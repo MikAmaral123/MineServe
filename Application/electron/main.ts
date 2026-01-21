@@ -141,7 +141,7 @@ ipcMain.handle('select-setup-dir', async () => {
 ipcMain.handle('install-server', async (_, config) => {
     setupManager.setWindow(win!)
     try {
-        await setupManager.downloadServer(config.type, config.version, config.path)
+        await setupManager.downloadServer(config.type, config.version, config.path, config.bedrock)
         serverManager.setServerDir(config.path) // Auto-link server
         backupManager.setServerDir(config.path)
         return true
@@ -259,13 +259,66 @@ ipcMain.handle('download-update', () => {
     return autoUpdater.downloadUpdate();
 });
 
-ipcMain.handle('quit-and-install', () => {
-    autoUpdater.quitAndInstall();
-});
-
 // --- Update Events ---
 autoUpdater.on('checking-for-update', () => {
     win?.webContents.send('update-status', { status: 'checking' });
+});
+
+ipcMain.handle('select-file', async (_, type) => {
+    const filters = type === 'icon'
+        ? [{ name: 'PNG Image', extensions: ['png'] }]
+        : [{ name: 'Zip Archive', extensions: ['zip'] }];
+
+    const result = await dialog.showOpenDialog(win!, {
+        properties: ['openFile'],
+        filters
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+        return result.filePaths[0];
+    }
+    return null;
+});
+
+ipcMain.handle('upload-server-file', async (_, { type, filePath }) => {
+    const dir = serverManager.getServerDir();
+    if (!dir) return { success: false, error: 'No server directory linked' };
+    if (!fs.existsSync(filePath)) return { success: false, error: 'File not found' };
+
+    try {
+        if (type === 'icon') {
+            const destPath = path.join(dir, 'server-icon.png');
+            const { nativeImage } = require('electron');
+            const image = nativeImage.createFromPath(filePath);
+            const resized = image.resize({ width: 64, height: 64 });
+            fs.writeFileSync(destPath, resized.toPNG());
+            return { success: true };
+        }
+        return { success: false, error: 'Unknown type' };
+    } catch (error: any) {
+        console.error('Upload failed:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('get-server-files-status', async () => {
+    const dir = serverManager.getServerDir();
+    if (!dir) return { icon: null, hasResourcePack: false };
+
+    let icon = null;
+    const iconPath = path.join(dir, 'server-icon.png');
+    if (fs.existsSync(iconPath)) {
+        const { nativeImage } = require('electron');
+        icon = nativeImage.createFromPath(iconPath).toDataURL();
+    }
+
+    const hasResourcePack = fs.existsSync(path.join(dir, 'resources.zip'));
+
+    return { icon, hasResourcePack };
+});
+
+ipcMain.handle('quit-and-install', () => {
+    autoUpdater.quitAndInstall();
 });
 
 autoUpdater.on('update-available', (info) => {

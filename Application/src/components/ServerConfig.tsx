@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Save, RotateCcw } from 'lucide-react';
+import { Save, RotateCcw, FileImage, ExternalLink, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '../lib/utils';
 
 // IPC Mock
@@ -39,8 +40,12 @@ const PROPERTY_TRANSLATIONS: Record<string, Record<string, string>> = {
 };
 
 const ServerConfig = () => {
+    const { t } = useTranslation();
     const [properties, setProperties] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
+    const [uploadStatus, setUploadStatus] = useState<{ type: string, msg: string } | null>(null);
+    const [fileStatus, setFileStatus] = useState<{ icon: string | null }>({ icon: null });
+    const [saved, setSaved] = useState(false);
     const lang = localStorage.getItem('app-language') || 'en';
 
     useEffect(() => {
@@ -52,6 +57,9 @@ const ServerConfig = () => {
         try {
             const props = await ipcRenderer.invoke('get-properties');
             setProperties(props);
+
+            const status = await ipcRenderer.invoke('get-server-files-status');
+            setFileStatus(status);
         } catch (error) {
             console.error(error);
         } finally {
@@ -65,6 +73,8 @@ const ServerConfig = () => {
 
     const handleSave = () => {
         ipcRenderer.send('save-properties', properties);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
     };
 
     const getLabel = (key: string) => {
@@ -74,10 +84,33 @@ const ServerConfig = () => {
         return key.replace(/\./g, ' ').replace(/-/g, ' ').toUpperCase();
     };
 
+    const handleSelectFile = async (type: 'icon') => {
+        try {
+            const filePath = await ipcRenderer.invoke('select-file', type);
+            if (filePath) {
+                setUploadStatus({ type, msg: 'Uploading...' });
+                const result = await ipcRenderer.invoke('upload-server-file', { type, filePath });
+                if (result.success) {
+                    setUploadStatus({ type, msg: 'Done!' });
+                    setTimeout(() => setUploadStatus(null), 3000);
+
+                    // Refresh status
+                    const status = await ipcRenderer.invoke('get-server-files-status');
+                    setFileStatus(status);
+                } else {
+                    setUploadStatus({ type, msg: 'Error!' });
+                    setTimeout(() => setUploadStatus(null), 3000);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
+
     if (loading) return <div className="text-gray-400">Loading configuration...</div>;
 
     return (
-        <div className="bg-card/40 backdrop-blur-sm border border-glass-border rounded-2xl p-6 h-[calc(100vh-200px)] flex flex-col">
+        <div className="bg-card/40 backdrop-blur-sm border border-white/5 rounded-2xl p-6 h-[calc(100vh-200px)] flex flex-col">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-lg font-semibold text-gray-200">Server Properties</h3>
                 <div className="flex gap-3">
@@ -90,10 +123,16 @@ const ServerConfig = () => {
                     </button>
                     <button
                         onClick={handleSave}
-                        className="flex items-center gap-2 px-4 py-2 bg-primary/20 text-primary border border-primary/20 rounded-lg hover:bg-primary/30 transition-all font-medium"
+                        disabled={saved}
+                        className={cn(
+                            "flex items-center gap-2 px-4 py-2 rounded-lg transition-all font-medium border",
+                            saved
+                                ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                : "bg-primary/20 text-primary border-primary/20 hover:bg-primary/30"
+                        )}
                     >
-                        <Save size={18} />
-                        Save Changes
+                        {saved ? <Check size={18} /> : <Save size={18} />}
+                        {saved ? t('saved') : t('save_changes')}
                     </button>
                 </div>
             </div>
@@ -131,7 +170,7 @@ const ServerConfig = () => {
                                     type="text"
                                     value={value}
                                     onChange={(e) => handleChange(key, e.target.value)}
-                                    className="bg-black/20 border border-glass-border rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-primary/50 transition-colors"
+                                    className="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-primary/50 transition-colors"
                                 />
                             )}
                         </div>
@@ -141,6 +180,54 @@ const ServerConfig = () => {
                             No properties found. Make sure a server directory is selected and server.properties exists.
                         </p>
                     )}
+                </div>
+
+                {/* File Upload Helper */}
+                <div className="mt-8 pt-6 border-t border-white/5">
+                    <h4 className="text-xs font-semibold text-gray-500 mb-4 uppercase tracking-wider">{t('quick_setup')}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Server Icon */}
+                        <button
+                            onClick={() => handleSelectFile('icon')}
+                            className="flex items-center gap-4 p-4 bg-black/20 border border-dashed border-white/10 rounded-xl hover:bg-white/5 hover:border-primary/50 transition-all group text-left"
+                        >
+                            <div className="w-12 h-12 bg-white/5 rounded-lg group-hover:scale-110 transition-transform relative overflow-hidden flex items-center justify-center">
+                                {fileStatus.icon ? (
+                                    <img src={fileStatus.icon} alt="Server Icon" className="w-full h-full object-cover" />
+                                ) : (
+                                    <FileImage className="w-6 h-6 text-primary" />
+                                )}
+                            </div>
+                            <div className="flex-1">
+                                <span className="block text-sm font-medium text-gray-200">
+                                    {(uploadStatus?.type === 'icon' && uploadStatus.msg) ? uploadStatus.msg : t('set_icon')}
+                                </span>
+                                <span className="block text-xs text-gray-500 mt-0.5">
+                                    {fileStatus.icon ? t('icon_set') : t('icon_desc')}
+                                </span>
+                            </div>
+                        </button>
+
+                        {/* MineMerge Promo */}
+                        <a
+                            href="https://mikamaral123.github.io/MinMerge/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-4 p-4 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 border border-white/10 rounded-xl hover:border-violet-500/50 hover:from-violet-500/20 hover:to-fuchsia-500/20 transition-all group text-left"
+                        >
+                            <div className="p-3 bg-white/5 rounded-lg group-hover:scale-110 transition-transform">
+                                <ExternalLink className="w-5 h-5 text-violet-400" />
+                            </div>
+                            <div className="flex-1">
+                                <span className="block text-sm font-medium text-gray-200">
+                                    {t('merge_packs')}
+                                </span>
+                                <span className="block text-xs text-violet-300/70 mt-0.5">
+                                    {t('merge_desc')}
+                                </span>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

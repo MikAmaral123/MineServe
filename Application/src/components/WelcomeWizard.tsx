@@ -22,6 +22,7 @@ const STEPS = {
 const SERVER_TYPES = [
     { id: 'vanilla', name: 'Vanilla', icon: Server, description: 'Official Minecraft Server', color: 'from-green-400 to-emerald-600' },
     { id: 'spigot', name: 'Paper / Spigot', icon: Settings, description: 'Optimized for Plugins (Performance)', color: 'from-blue-400 to-indigo-600' },
+    { id: 'purpur', name: 'Purpur', icon: Globe, description: 'Advanced Configuration & Features', color: 'from-purple-400 to-pink-600' },
     { id: 'fabric', name: 'Fabric', icon: Shield, description: 'Modded Server (Lightweight)', color: 'from-orange-400 to-red-600' },
 ];
 
@@ -106,7 +107,8 @@ const WelcomeWizard = ({ onComplete }: SetupProps) => {
     const [config, setConfig] = useState({
         path: '',
         type: '',
-        version: ''
+        version: '',
+        bedrock: false
     });
     const [logs, setLogs] = useState<string[]>([]);
 
@@ -115,6 +117,7 @@ const WelcomeWizard = ({ onComplete }: SetupProps) => {
     // Extended versions for 2026 context
     const APP_VERSIONS = [
         '1.21.4', '1.21.0',
+        '1.20.6', '1.20.4', '1.20.1',
         '1.20.6', '1.20.4',
         '1.19.4', '1.18.2',
         '1.16.5', '1.12.2', '1.8.9'
@@ -379,6 +382,31 @@ const WelcomeWizard = ({ onComplete }: SetupProps) => {
                                         </button>
                                     ))}
                                 </div>
+
+                                {(config.type === 'spigot' || config.type === 'purpur') && (
+                                    <div
+                                        onClick={() => setConfig({ ...config, bedrock: !config.bedrock })}
+                                        className={cn(
+                                            "flex items-center gap-4 p-4 rounded-xl border transition-all cursor-pointer group",
+                                            config.bedrock
+                                                ? "bg-purple-500/10 border-purple-500/50"
+                                                : "bg-black/20 border-white/10 hover:bg-white/5"
+                                        )}
+                                    >
+                                        <div className={cn(
+                                            "w-6 h-6 rounded flex items-center justify-center transition-colors",
+                                            config.bedrock ? "bg-purple-500 text-white" : "bg-white/10"
+                                        )}>
+                                            {config.bedrock && <Check size={14} strokeWidth={3} />}
+                                        </div>
+                                        <div>
+                                            <h3 className="text-white font-bold flex items-center gap-2">
+                                                Bedrock Support <span className="text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">GeyserMC</span>
+                                            </h3>
+                                            <p className="text-xs text-gray-400">Allow Bedrock players (Mobile/Console) to join</p>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="flex justify-between items-center">
                                     <button onClick={() => setStep(STEPS.TYPE)} className="text-white/40 hover:text-white transition-colors text-sm font-medium">{t.back}</button>

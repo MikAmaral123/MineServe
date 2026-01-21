@@ -16,6 +16,7 @@ export class ServerManager {
 
     constructor() { }
 
+
     getPlayers() {
         return Array.from(this.players);
     }
